@@ -1,42 +1,67 @@
-{
-  "expo": {
-    "name": "EletroNovo",
-    "slug": "EletroNovo",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "eletronovo",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+    {
+      "expo": {
+        "name": "eletronovo",
+        "scheme": "eletronovo",
+        "slug": "eletronovo",
+        "version": "1.0.0",
+        "orientation": "default",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": false,
+        "splash": {
+          "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
+        },
+        "ios": {
+          "supportsTablet": true,
+          "package": "com.v6core.rodrigo",
+          "infoPlist": {
+            "NSCameraUsageDescription": "Este aplicativo precisa de acesso à sua câmera para permitir que você tire fotos de ECGs para upload.",
+            "NSPhotoLibraryUsageDescription": "Este aplicativo precisa de acesso à sua galeria de fotos para permitir que você selecione imagens de ECGs para upload."
+          }
+        },
+        "android": {
+          "adaptiveIcon": {
+            "foregroundImage": "./assets/adaptive-icon.png",
+            "backgroundColor": "#ffffff"
+          },
+          "package": "com.v6core.rodrigo",
+          "compileSdkVersion": 34,
+          "targetSdkVersion": 34,
+          "minSdkVersion": 24
+        },
+        "web": {
+          "bundler": "metro",
+          "favicon": "./assets/favicon.png"
+        },
+        "plugins": [
+          ["expo-router"],
+          [
+            "expo-build-properties",
+            {
+              "android": {
+                "buildFeatures": {
+                  "buildConfig": true
+                },
+                "kotlin": {
+                  "jvmTarget": "17",
+                  "kotlinVersion": "1.9.0"
+                },
+                "jdkVersion": "17"
+              }
+            }
+          ]
+        ],
+        "extra": {
+          "router": {
+            "origin": false
+          },
+          "eas": {
+            "projectId": "51c25ee1-8e56-4637-a9e4-b13825202e9b"
+          }
+        },
+        "sdkVersion": "51.0.0" 
+      }
     }
-  }
-}
+    
