@@ -1,14 +1,14 @@
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View, ImageBackground, StyleSheet, Platform, ActionSheetIOS } from 'react-native';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import FormField from '../../components/FormField';
-import CustomButton from '../../components/CustomButton';
-import { icons, images } from '../../constants';
-import { createEcg } from '../../lib/firebase';
-import { useGlobalContext } from '../../context/GlobalProvider';
-import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActionSheetIOS, Alert, Image, ImageBackground, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomButton from '../../components/CustomButton';
+import FormField from '../../components/FormField';
+import { icons, images } from '../../constants';
+import { useGlobalContext } from '../../context/GlobalProvider';
+import { createEcg } from '../../lib/firebase';
 
 const Create = () => {
   const { user } = useGlobalContext();
@@ -120,19 +120,19 @@ const Create = () => {
           onPress={() => router.replace('/home')}
           style={{
             position: 'absolute',
-            top: Platform.OS === 'ios' ? 60 : 30,
-            left: 20,
+            top: Platform.OS === 'ios' ? 80 : 50, // aumentado
+            left: 36, // aumentado
             zIndex: 20,
             backgroundColor: 'rgba(0,0,0,0.4)',
             padding: 8,
             borderRadius: 20
           }}
         >
-          <Image source={icons.leftArrow} style={{ width: 24, height: 24, tintColor: 'white' }} />
+          <Image source={icons.leftArrow} style={{ width: 30, height: 23, tintColor: 'white' }} />
         </TouchableOpacity>
 
         <ScrollView className="px-4 my-6" contentContainerStyle={{ flexGrow: 1, zIndex: 2 }}>
-          <Text className="text-2xl text-white font-psemibold mb-4 mt-10">Upload de Eletrocardiograma</Text>
+          <Text className="text-2xl text-white font-psemibold mb-4 mt-24">Upload de Eletrocardiograma</Text>
 
           <FormField title="Nome do Paciente" value={form.patientName} placeholder="Nome completo..." handleChangeText={(e) => setForm({ ...form, patientName: e })} otherStyles="mt-2" />
           <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4" />
@@ -173,7 +173,7 @@ const Create = () => {
             </View>
           </View>
 
-          <View className="mt-4 space-y-2">
+          <View className="mt-8 space-y-2">
             <Text className="text-base text-gray-100 font-pmedium">Imagem do ECG</Text>
             {form.ecgFile ? (
               <TouchableOpacity onPress={clearImage} className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
