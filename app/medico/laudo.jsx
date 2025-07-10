@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, StatusBar, Platform } from 'react-native'; 
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import ImageViewer from 'react-native-image-zoom-viewer';
+import Modal from 'react-native-modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FormField from '../../components/FormField'; 
-import CustomButton from '../../components/CustomButton'; 
-import { icons } from '../../constants'; 
-import { getPendingEcgs, updateEcgLaudation } from '../../lib/firebase'; 
+import CustomButton from '../../components/CustomButton';
+import FormField from '../../components/FormField';
+import { icons } from '../../constants';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { useRouter } from 'expo-router'; 
-import Modal from 'react-native-modal'; 
-import ImageViewer from 'react-native-image-zoom-viewer'; 
+import { getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
 
 const Laudo = () => {
   const { user } = useGlobalContext();
@@ -168,16 +168,22 @@ const Laudo = () => {
       </ScrollView>
 
       <Modal isVisible={showFullImage} style={{ margin: 0, backgroundColor: 'black' }}>
-        {selectedEcg && (
+        {selectedEcg ? (
           <ImageViewer imageUrls={[{ url: selectedEcg.imageUrl }]} enableSwipeDown onSwipeDown={() => setShowFullImage(false)} renderIndicator={() => null} style={{ flex: 1, backgroundColor: 'black' }}
             renderHeader={() => (
               <View style={{ position: 'absolute', top: Platform.OS === 'ios' ? 40 : 20, right: 20, zIndex: 50 }}>
                 <TouchableOpacity onPress={() => setShowFullImage(false)} className="p-3 rounded-full bg-gray-800">
-                  <Image source={icons.close} className="w-6 h-6" tintColor="#FFFFFF" />
+                  <Text className="text-white text-xl font-bold">×</Text>
                 </TouchableOpacity>
               </View>
             )}
           />
+        ) : (
+          <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setShowFullImage(false)} className="p-3 rounded-full bg-gray-800">
+              <Text className="text-white text-xl font-bold">×</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </Modal>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { icons } from "../constants";
 
@@ -9,50 +9,50 @@ const FormField = ({
   placeholder,
   handleChangeText,
   otherStyles,
-  keyboardType, // Propriedade para tipo de teclado
-  multiline,    // Nova prop: true para campo de múltiplas linhas
-  numberOfLines, // Nova prop: número de linhas visíveis
+  keyboardType,
+  multiline,
+  numberOfLines,
+  secureTextEntry, // ✅ agora aceito por fora
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+
+  const isPasswordField = secureTextEntry === true;
 
   return (
     <View className={`space-y-2 ${otherStyles}`}>
       <Text className="text-base text-gray-100 font-pmedium">{title}</Text>
 
-      <View 
-        // Classes Tailwind para o contêiner do TextInput
-        // Se 'multiline' for true, ajusta o padding vertical e remove altura fixa para permitir expansão.
-        // Se 'multiline' for false (padrão), mantém a altura fixa e centraliza o conteúdo.
-        className={`w-full px-4 bg-black-100 rounded-2xl border-2 border-black-200 ${
-          multiline ? 'py-4' : 'h-16 flex-row items-center' 
+      <View
+        className={`w-full px-4 bg-gray-100 rounded-2xl border-2 border-black-200 ${
+          multiline ? 'py-4' : 'h-16 flex-row items-center'
         }`}
       >
         <TextInput
-          className={`flex-1 text-white font-psemibold text-base ${
-            multiline ? '' : 'focus:border-secondary' // Estilo de foco (se houver)
-          }`}
+          className="flex-1 text-black font-psemibold text-base"
           value={value}
           placeholder={placeholder}
           placeholderTextColor="#7B7B8B"
           onChangeText={handleChangeText}
-          secureTextEntry={title === "Password" && !showPassword}
-          keyboardType={keyboardType} // Passa o tipo de teclado
-          multiline={multiline} // Habilita o modo multiline no TextInput nativo
-          numberOfLines={numberOfLines} // Define o número de linhas visíveis
-          textAlignVertical={multiline ? 'top' : 'center'} // Alinha o texto no topo para multilinhas
+          keyboardType={keyboardType}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          secureTextEntry={isPasswordField && !showPassword}
+          textAlignVertical={multiline ? 'top' : 'center'}
           {...props}
         />
 
-        {/* Lógica para mostrar/esconder senha, se o campo for de senha */}
-        {title === "Password" && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Image
-              source={!showPassword ? icons.eye : icons.eyeHide}
-              className="w-6 h-6"
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+        {/* Ícone de visibilidade para campos de senha */}
+        {isPasswordField && (
+          <View className="ml-2">
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Image
+                source={showPassword ? icons.eyeHide : icons.eye}
+                className="w-6 h-6"
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
