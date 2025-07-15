@@ -1,19 +1,21 @@
-import { Text, View, FlatList, Image, RefreshControl, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { icons, images } from '../../constants';
-import EmptyState from '../../components/EmptyState';
-import { getUserPosts, signOut, getPendingEcgs, getLaudedEcgsByDoctorId } from '../../lib/firebase';
-import useFirebaseData from '../../lib/useFirebaseData';
-import { useGlobalContext } from '../../context/GlobalProvider';
-import InfoBox from '../../components/InfoBox';
 import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import EcgCard from '../../components/EcgCard';
+import EmptyState from '../../components/EmptyState';
+import InfoBox from '../../components/InfoBox';
+import SearchInput from '../../components/SearchInput';
 import WeeklyCalendarPicker from '../../components/WeeklyCalendarPicker';
+import { icons } from '../../constants';
+import { useGlobalContext } from '../../context/GlobalProvider';
+import { getLaudedEcgsByDoctorId, getPendingEcgs, getUserPosts, signOut } from '../../lib/firebase';
+import useFirebaseData from '../../lib/useFirebaseData';
 
 const Profile = () => {
   const { user, setUser, setIsLogged, isLoading: isGlobalLoading } = useGlobalContext();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [search, setSearch] = useState('');
 
   const fetchEcgsFunction = useCallback(() => {
     if (!user?.uid) return Promise.resolve([]);
@@ -76,12 +78,18 @@ const Profile = () => {
   };
 
   const filteredEcgs = useMemo(() => {
-    if (!selectedDate) return ecgs;
-    return ecgs.filter(ecg => {
-      const ecgDate = new Date(ecg.createdAt?.seconds * 1000).toISOString().slice(0, 10);
-      return ecgDate === selectedDate;
-    });
-  }, [ecgs, selectedDate]);
+    let result = ecgs;
+    if (search) {
+      result = result.filter(ecg => ecg.patientName?.toLowerCase().includes(search.toLowerCase()));
+    }
+    if (selectedDate) {
+      result = result.filter(ecg => {
+        const ecgDate = new Date(ecg.createdAt?.seconds * 1000).toISOString().slice(0, 10);
+        return ecgDate === selectedDate;
+      });
+    }
+    return result;
+  }, [ecgs, selectedDate, search]);
 
   const laudedsOrSentEcgsCount = ecgs.length || 0;
 
@@ -114,7 +122,7 @@ const Profile = () => {
 
             <View className="w-24 h-24 border border-secondary rounded-full justify-center items-center p-1">
               <Image
-                source={images.profile}
+                source={{ uri: user.avatar }}
                 className="w-full h-full rounded-full"
                 resizeMode='cover'
               />
@@ -156,6 +164,15 @@ const Profile = () => {
                   />
                 </>
               )}
+            </View>
+            {/* Search por nome do paciente */}
+            <View className="w-full mt-8 mb-2">
+              <SearchInput
+                initialQuery={search}
+                onChangeText={setSearch}
+                placeholder="Buscar por nome do paciente..."
+                showButton={false}
+              />
             </View>
             <WeeklyCalendarPicker
               onSelectDate={setSelectedDate}

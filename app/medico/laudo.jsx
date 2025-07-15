@@ -8,20 +8,24 @@ import CustomButton from '../../components/CustomButton';
 import FormField from '../../components/FormField';
 import { icons } from '../../constants';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
+import { getEcgMessages, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
+import { generateLaudo } from '../../lib/generateLaudo';
 
 const Laudo = () => {
   const { user } = useGlobalContext();
   const router = useRouter(); 
-  const [selectedPriorityType, setSelectedPriorityType] = useState(null); 
   const [selectedEcg, setSelectedEcg] = useState(null); 
   const [loadingEcgs, setLoadingEcgs] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false); 
   const [laudoForm, setLaudoForm] = useState({
     ritmo: '', fc: '', pr: '', qrs: '', eixo: '',
-    brc: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: ''
+    bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: ''
   });
+  const [urgentEcgs, setUrgentEcgs] = useState([]);
+  const [electiveEcgs, setElectiveEcgs] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const ritmoOptions = ['Sinusal', 'Ectópico Atrial', 'Juncional', 'Fibrilação Atrial', 'Flutter Atrial', 'MP (Marcapasso)', 'Outro'];
   const repolarizacaoOptions = ['Normal', 'Alterado Difuso da Repolarização Ventricular', 'Infradesnivelamento', 'Supradesnivelamento', 'Outro'];
@@ -34,7 +38,7 @@ const Laudo = () => {
     if (form.qrs) lines.push(`Duração QRS: ${form.qrs} ms.`);
     if (form.eixo) lines.push(`Eixo elétrico: ${form.eixo}.`);
     let bloqueios = [];
-    if (form.brc) bloqueios.push('BRC');
+    if (form.bre) bloqueios.push('BRE');
     if (form.brd) bloqueios.push('BRD');
     if (bloqueios.length) lines.push(`Bloqueios de Ramo: ${bloqueios.join(' e ')}.`);
     if (form.repolarizacao) lines.push(`Repolarização: ${form.repolarizacao}.`);
@@ -53,7 +57,7 @@ const Laudo = () => {
   const fetchAndSelectFirstEcg = useCallback(async (priorityType) => {
     setLoadingEcgs(true);
     setSelectedEcg(null);
-    setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', brc: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+    setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
     try {
       const ecgs = await getPendingEcgs(priorityType); 
       if (ecgs.length > 0) setSelectedEcg(ecgs[0]);
@@ -65,10 +69,42 @@ const Laudo = () => {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'medico' && selectedPriorityType) {
-      fetchAndSelectFirstEcg(selectedPriorityType);
+    const fetchAllEcgs = async () => {
+      setLoadingEcgs(true);
+      setSelectedEcg(null);
+      setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+      try {
+        const allEcgs = await getPendingEcgs();
+        setUrgentEcgs(allEcgs.filter(e => e.priority === 'Urgente'));
+        setElectiveEcgs(allEcgs.filter(e => e.priority === 'Eletivo'));
+      } catch (error) {
+        Alert.alert('Erro', 'Não foi possível carregar os exames.');
+      } finally {
+        setLoadingEcgs(false);
+      }
+    };
+    if (user?.role === 'medico') {
+      fetchAllEcgs();
     }
-  }, [user, selectedPriorityType]);
+  }, [user]);
+
+  // Atualiza a contagem de mensagens não lidas sempre que um ECG é selecionado
+  useEffect(() => {
+    const fetchUnread = async () => {
+      if (selectedEcg && user?.uid) {
+        try {
+          const messages = await getEcgMessages(selectedEcg.id, user.uid);
+          const unread = messages.filter(m => !m.isRead && m.senderId !== user.uid).length;
+          setUnreadCount(unread);
+        } catch (e) {
+          setUnreadCount(0);
+        }
+      } else {
+        setUnreadCount(0);
+      }
+    };
+    fetchUnread();
+  }, [selectedEcg, user?.uid]);
 
   const submitLaudo = async () => {
     if (!selectedEcg || !laudoForm.laudoFinal || !user?.uid) {
@@ -79,11 +115,10 @@ const Laudo = () => {
     try {
       await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal, user.uid, {
         ritmo: laudoForm.ritmo, fc: laudoForm.fc, pr: laudoForm.pr, qrs: laudoForm.qrs,
-        eixo: laudoForm.eixo, brc: laudoForm.brc, brd: laudoForm.brd, repolarizacao: laudoForm.repolarizacao, outrosAchados: laudoForm.outrosAchados
+        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, repolarizacao: laudoForm.repolarizacao, outrosAchados: laudoForm.outrosAchados
       });
       Alert.alert('Sucesso', 'Laudo enviado!');
       setSelectedEcg(null);
-      setSelectedPriorityType(null);
     } catch (err) {
       Alert.alert('Erro', err.message);
     } finally {
@@ -95,6 +130,30 @@ const Laudo = () => {
   const handleOpenChat = () => {
     if (selectedEcg?.id) router.push(`/chat/${selectedEcg.id}`);
     else Alert.alert('Erro', 'Selecione um ECG');
+  };
+
+  const handleGenerateLaudo = async () => {
+    console.log('=== INICIANDO GERAÇÃO DE LAUDO ===');
+    console.log('Estado atual do formulário:', laudoForm);
+    console.log('ECG selecionado:', selectedEcg);
+    
+    setIsGenerating(true);
+    try {
+      console.log('Chamando generateLaudo...');
+      const laudo = await generateLaudo(laudoForm, selectedEcg?.imageUrl);
+      console.log('Laudo gerado:', laudo);
+      // Gera o laudoFinal automaticamente com os campos preenchidos pela IA
+      const laudoComFinal = { ...laudo };
+      laudoComFinal.laudoFinal = generateLaudoFinal(laudoComFinal);
+      setLaudoForm(prev => ({ ...prev, ...laudoComFinal }));
+      console.log('Formulário atualizado com sucesso');
+    } catch (e) {
+      console.error('Erro na geração do laudo:', e);
+      Alert.alert('Erro', e.message || 'Não foi possível gerar o laudo automaticamente.');
+    } finally {
+      console.log('Finalizando geração de laudo');
+      setIsGenerating(false);
+    }
   };
 
   const RadioGroup = ({ label, options, selectedOption, onSelect }) => (
@@ -113,29 +172,66 @@ const Laudo = () => {
 
   return (
     <SafeAreaView className="bg-primary h-full flex-1">
+      {/* Botão de voltar igual ao Create */}
+      <TouchableOpacity
+        onPress={handleBack}
+        style={{
+          position: 'absolute',
+          top: Platform.OS === 'ios' ? 80 : 50,
+          left: 36,
+          zIndex: 20,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          padding: 8,
+          borderRadius: 20
+        }}
+      >
+        <Image source={icons.leftArrow} style={{ width: 30, height: 23, tintColor: 'white' }} />
+      </TouchableOpacity>
       <ScrollView className="px-4 my-6">
-        <TouchableOpacity onPress={handleBack} className="flex-row items-center mb-6">
-          <Image source={icons.leftArrow} className="w-6 h-6 mr-2" resizeMode="contain" tintColor="#FFFFFF" />
-          <Text className="text-white text-base font-pmedium">Voltar</Text>
-        </TouchableOpacity>
-        <Text className="text-2xl text-white font-psemibold mb-6">Laudar Eletrocardiogramas</Text>
+        <Text className="text-2xl text-white font-psemibold mb-6 text-center mt-16">Laudar Eletrocardiogramas</Text>
 
-        {!selectedPriorityType ? (
-          <View className="flex-1 justify-center items-center h-80">
-            <Text className="text-xl text-white font-pmedium mb-4">Escolha o tipo:</Text>
-            <View className="flex-row space-x-4 mt-4">
-              <CustomButton title="Urgente" handlePress={() => setSelectedPriorityType('Urgente')} containerStyles="bg-red-600 w-1/2" />
-              <CustomButton title="Eletivo" handlePress={() => setSelectedPriorityType('Eletivo')} containerStyles="bg-orange-500 w-1/2" />
-            </View>
-          </View>
-        ) : loadingEcgs ? (
+        {loadingEcgs ? (
           <ActivityIndicator size="large" color="#FFA001" className="mt-10" />
         ) : !selectedEcg ? (
-          <View className="flex-1 justify-center items-center h-40">
-            <Text className="text-gray-100 font-pmedium text-lg">Nenhum ECG pendente.</Text>
-            <CustomButton title="Voltar" handlePress={() => setSelectedPriorityType(null)} containerStyles="mt-4 bg-gray-700" />
-          </View>
-        ) : (
+          <>
+            <Text className="text-xl text-red-500 font-psemibold text-center mt-4 mb-2">URGENTE</Text>
+            {urgentEcgs.length === 0 ? (
+              <Text className="text-gray-100 text-center mb-4">Nenhum ECG urgente pendente.</Text>
+            ) : urgentEcgs.map(ecg => (
+              <TouchableOpacity
+                key={ecg.id}
+                onPress={() => {
+                  setSelectedEcg(ecg);
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                }}
+                className={`flex-row items-center bg-black-100 rounded-lg border-2 border-black-200 px-4 py-3 mb-2`}
+              >
+                <Text className="text-white font-pmedium flex-1">{ecg.patientName} ({ecg.age} anos) - {ecg.sex}</Text>
+                <Text className="text-xs text-gray-300 ml-2">{ecg.priority}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <Text className="text-xl text-orange-400 font-psemibold text-center mt-8 mb-2">ELETIVO</Text>
+            {electiveEcgs.length === 0 ? (
+              <Text className="text-gray-100 text-center mb-4">Nenhum ECG eletivo pendente.</Text>
+            ) : electiveEcgs.map(ecg => (
+              <TouchableOpacity
+                key={ecg.id}
+                onPress={() => {
+                  setSelectedEcg(ecg);
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                }}
+                className={`flex-row items-center bg-black-100 rounded-lg border-2 border-black-200 px-4 py-3 mb-2`}
+              >
+                <Text className="text-white font-pmedium flex-1">{ecg.patientName} ({ecg.age} anos) - {ecg.sex}</Text>
+                <Text className="text-xs text-gray-300 ml-2">{ecg.priority}</Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : null}
+
+        {/* Formulário de laudo só aparece se houver ECG selecionado */}
+        {selectedEcg && (
           <View className="mt-8 p-4 bg-black-100 rounded-xl border-2 border-black-200">
             <Text className="text-xl text-white font-psemibold mb-4">Paciente: {selectedEcg.patientName}</Text>
             <TouchableOpacity onPress={() => setShowFullImage(true)} className="w-full h-64 rounded-lg mb-4">
@@ -155,14 +251,23 @@ const Laudo = () => {
             <FormField title="QRS" value={laudoForm.qrs} handleChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)} keyboardType="numeric" otherStyles="mt-7" />
             <FormField title="Eixo" value={laudoForm.eixo} handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)} otherStyles="mt-7" />
             <View className="mt-7 flex-row space-x-4">
-              <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('brc', !laudoForm.brc)} className={`py-2 px-5 rounded-lg ${laudoForm.brc ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRC</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('bre', !laudoForm.bre)} className={`py-2 px-5 rounded-lg ${laudoForm.bre ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRE</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('brd', !laudoForm.brd)} className={`py-2 px-5 rounded-lg ${laudoForm.brd ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRD</Text></TouchableOpacity>
             </View>
             <RadioGroup label="Repolarização" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => updateFormAndGenerateLaudo('repolarizacao', option)} />
             <FormField title="Outros Achados" value={laudoForm.outrosAchados} handleChangeText={(e) => updateFormAndGenerateLaudo('outrosAchados', e)} otherStyles="mt-7" multiline />
             <FormField title="Laudo Final" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
             <CustomButton title="Submeter Laudo" handlePress={submitLaudo} containerStyles="mt-7" isLoading={isSubmitting} />
-            <CustomButton title="Abrir Chat" handlePress={handleOpenChat} containerStyles="mt-4 mb-10 bg-green-600" />
+            <CustomButton
+              title={isGenerating ? 'Gerando laudo...' : 'Gerar laudo automático'}
+              handlePress={() => {
+                console.log('=== BOTÃO PRESSIONADO ===');
+                handleGenerateLaudo();
+              }}
+              isLoading={isGenerating}
+              containerStyles="mt-4 mb-10 bg-green-600"
+            />
+            <CustomButton title={`Abrir Chat${unreadCount > 0 ? ` (${unreadCount})` : ''}`} handlePress={handleOpenChat} containerStyles="mt-4 mb-10 bg-green-600" />
           </View>
         )}
       </ScrollView>

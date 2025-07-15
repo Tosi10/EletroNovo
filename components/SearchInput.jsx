@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { View, TextInput, TouchableOpacity, Image, Alert } from "react-native";
+import { Alert, Image, TextInput, TouchableOpacity, View } from "react-native";
 
-import { icons } from "../constants";
 import { usePathname, useRouter } from "expo-router";
+import { icons } from "../constants";
 
 const SearchInput = ({initialQuery}) => {
   const pathname = usePathname();
@@ -14,7 +14,7 @@ const SearchInput = ({initialQuery}) => {
       <TextInput
         className="text-base mt--0.5 text-white flex-1 font-pregular"
         value={query}
-        placeholder="Search for a video topic"
+        placeholder="Procurar Ecg"
         placeholderTextColor="orange"
         onChangeText={(e) => setQuery(e)}
       />

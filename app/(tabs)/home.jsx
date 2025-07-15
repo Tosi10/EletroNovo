@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, Image, ImageBackground, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import React, { useState } from 'react';
+import { ActivityIndicator, ImageBackground, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { images } from '../../constants';
 
@@ -70,7 +70,7 @@ const Home = () => {
 
             {/* Seções de texto informativas */}
             <View className="w-full pt-7 pb-8 items-center">
-              <Text className="text-gray-100 text-2xl font-pregular mb-3 text-center">
+              <Text className="text-gray-700 text-3xl font-pregular mb-3 text-center">
                 V6 Core
               </Text>
               <Text className="text-white text-xl font-psemibold mb-2 text-center">
