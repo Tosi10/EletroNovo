@@ -138,7 +138,7 @@ const Create = () => {
           <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4" />
 
           <View className="mt-4">
-            <Text className="text-base text-gray-100 font-pmedium mb-2">Sexo</Text>
+            <Text className="text-base text-black font-bold mb-2">Sexo</Text>
             <View className="flex-row space-x-4">
               {['Masculino', 'Feminino'].map((s) => (
                 <TouchableOpacity key={s} onPress={() => setForm({ ...form, sex: s })}
@@ -150,7 +150,7 @@ const Create = () => {
           </View>
 
           <View className="mt-4">
-            <Text className="text-base text-gray-100 font-pmedium mb-2">Possui Marcapasso?</Text>
+            <Text className="text-lg text-black font-bold mb-2">Possui Marcapasso?</Text>
             <View className="flex-row space-x-4">
               {['Sim', 'Não'].map((v) => (
                 <TouchableOpacity key={v} onPress={() => setForm({ ...form, hasPacemaker: v })}
@@ -162,7 +162,7 @@ const Create = () => {
           </View>
 
           <View className="mt-4">
-            <Text className="text-base text-gray-100 font-pmedium mb-2">Prioridade</Text>
+            <Text className="text-lg text-black font-bold mb-2">Prioridade</Text>
             <View className="flex-row space-x-4">
               {['Urgente', 'Eletivo'].map((p) => (
                 <TouchableOpacity key={p} onPress={() => setForm({ ...form, priority: p })}
@@ -174,7 +174,7 @@ const Create = () => {
           </View>
 
           <View className="mt-8 space-y-2">
-            <Text className="text-base text-gray-100 font-pmedium">Imagem do ECG</Text>
+            <Text className="text-lg text-black font-bold">Imagem do ECG</Text>
             {form.ecgFile ? (
               <TouchableOpacity onPress={clearImage} className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
                 <Image source={{ uri: form.ecgFile.uri }} className="w-full h-full rounded-2xl" resizeMode="cover" />
