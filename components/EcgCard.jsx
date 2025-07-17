@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { icons } from '../constants'; 
-import { useGlobalContext } from '../context/GlobalProvider'; 
 import { router } from 'expo-router';
-import { db, markEcgMessagesAsRead } from '../lib/firebase'; 
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore'; 
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Text, TouchableOpacity, View } from 'react-native';
+import { icons } from '../constants';
+import { db, markEcgMessagesAsRead } from '../lib/firebase';
 
 // Adicionado 'currentUserId' como prop
 const EcgCard = ({ ecg, currentUserId }) => {
@@ -136,20 +135,25 @@ const EcgCard = ({ ecg, currentUserId }) => {
           </Text>
         )}
 
-        <TouchableOpacity 
-          onPress={handleChatPress} 
-          className="flex-row items-center bg-secondary-100 p-2 rounded-lg mt-2 self-start" 
-        >
-          <Image source={icons.chat} className="w-5 h-5 mr-1" tintColor="#FFF" />
-          <Text className="text-white font-pmedium text-sm">Chat</Text>
+        {/* Wrapper para posicionamento relativo do badge */}
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity 
+            onPress={handleChatPress}
+            className="flex-row items-center bg-secondary-200 px-5 py-2 rounded-xl mt-2"
+            style={{ alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Image source={icons.chat} className="w-3.4 h-5 mr-1" tintColor="#FFF" />
+            <Text className="text-white font-pmedium text-md text-center">Chat</Text>
+          </TouchableOpacity>
+          {/* Badge absoluto para mensagens não lidas */}
           {loadingUnread ? (
-            <ActivityIndicator size="small" color="#FFFFFF" className="ml-1" />
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ position: 'absolute', top: -8, right: -8 }} />
           ) : unreadCount > 0 ? (
-            <View className="ml-1 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center">
+            <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#EF4444', borderRadius: 10, width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
               <Text className="text-white text-xs font-pbold">{unreadCount}</Text>
             </View>
           ) : null}
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

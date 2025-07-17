@@ -26,9 +26,10 @@ const Laudo = () => {
   const [electiveEcgs, setElectiveEcgs] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showOutroRepolarizacao, setShowOutroRepolarizacao] = useState(false);
 
   const ritmoOptions = ['Sinusal', 'Ectópico Atrial', 'Juncional', 'Fibrilação Atrial', 'Flutter Atrial', 'MP (Marcapasso)', 'Outro'];
-  const repolarizacaoOptions = ['Normal', 'Alterado Difuso da Repolarização Ventricular', 'Infradesnivelamento', 'Supradesnivelamento', 'Outro'];
+  const repolarizacaoOptions = ['Normal', 'Alteração difusa da repolarização ventricular', 'Infradesnivelamento', 'Supradesnivelamento', 'Outro'];
 
   const generateLaudoFinal = (form) => {
     let lines = [];
@@ -36,12 +37,12 @@ const Laudo = () => {
     if (form.fc) lines.push(`Frequência Cardíaca: ${form.fc} bpm.`);
     if (form.pr) lines.push(`Intervalo PR: ${form.pr} ms.`);
     if (form.qrs) lines.push(`Duração QRS: ${form.qrs} ms.`);
-    if (form.eixo) lines.push(`Eixo elétrico: ${form.eixo}.`);
+    if (form.eixo) lines.push(`Eixo elétrico: ${form.eixo}°.`);
     let bloqueios = [];
-    if (form.bre) bloqueios.push('BRE');
-    if (form.brd) bloqueios.push('BRD');
-    if (bloqueios.length) lines.push(`Bloqueios de Ramo: ${bloqueios.join(' e ')}.`);
-    if (form.repolarizacao) lines.push(`Repolarização: ${form.repolarizacao}.`);
+    if (form.bre) bloqueios.push('Bloqueio de ramo esquerdo');
+    if (form.brd) bloqueios.push('Bloqueio de ramo direito');
+    if (bloqueios.length) lines.push(`${bloqueios.join(' e ')}.`);
+    if (form.repolarizacao) lines.push(`${form.repolarizacao}.`); // Apenas o valor, sem prefixo
     if (form.outrosAchados) lines.push(`Outros Achados: ${form.outrosAchados}.`);
     return lines.join('\n');
   };
@@ -249,16 +250,27 @@ const Laudo = () => {
             <FormField title="FC" value={laudoForm.fc} handleChangeText={(e) => updateFormAndGenerateLaudo('fc', e)} keyboardType="numeric" otherStyles="mt-7" />
             <FormField title="PR" value={laudoForm.pr} handleChangeText={(e) => updateFormAndGenerateLaudo('pr', e)} keyboardType="numeric" otherStyles="mt-7" />
             <FormField title="QRS" value={laudoForm.qrs} handleChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)} keyboardType="numeric" otherStyles="mt-7" />
-            <FormField title="Eixo" value={laudoForm.eixo} handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)} otherStyles="mt-7" />
+            <FormField title="Eixo " value={laudoForm.eixo} handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)} otherStyles="mt-7" />
             <View className="mt-7 flex-row space-x-4">
               <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('bre', !laudoForm.bre)} className={`py-2 px-5 rounded-lg ${laudoForm.bre ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRE</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('brd', !laudoForm.brd)} className={`py-2 px-5 rounded-lg ${laudoForm.brd ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRD</Text></TouchableOpacity>
             </View>
-            <RadioGroup label="Repolarização" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => updateFormAndGenerateLaudo('repolarizacao', option)} />
+            <RadioGroup label="Repolarização" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => {
+              updateFormAndGenerateLaudo('repolarizacao', option === 'Outro' ? '' : option);
+              setShowOutroRepolarizacao(option === 'Outro');
+            }} />
+            {showOutroRepolarizacao && (
+              <FormField
+                title="Descreva a repolarização"
+                value={laudoForm.repolarizacao}
+                handleChangeText={(e) => updateFormAndGenerateLaudo('repolarizacao', e)}
+                otherStyles="mt-4"
+              />
+            )}
             <FormField title="Outros Achados" value={laudoForm.outrosAchados} handleChangeText={(e) => updateFormAndGenerateLaudo('outrosAchados', e)} otherStyles="mt-7" multiline />
             <FormField title="Laudo Final" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
             <CustomButton title="Submeter Laudo" handlePress={submitLaudo} containerStyles="mt-7" isLoading={isSubmitting} />
-            <CustomButton
+            {/* <CustomButton
               title={isGenerating ? 'Gerando laudo...' : 'Gerar laudo automático'}
               handlePress={() => {
                 console.log('=== BOTÃO PRESSIONADO ===');
@@ -266,7 +278,7 @@ const Laudo = () => {
               }}
               isLoading={isGenerating}
               containerStyles="mt-4 mb-10 bg-green-600"
-            />
+            /> */}
             <CustomButton title={`Abrir Chat${unreadCount > 0 ? ` (${unreadCount})` : ''}`} handlePress={handleOpenChat} containerStyles="mt-4 mb-10 bg-green-600" />
           </View>
         )}

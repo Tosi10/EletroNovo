@@ -57,7 +57,7 @@ const WebNavigationLayout = ({ children }) => {
         <Text className="text-white text-3xl font-pbold mb-10 text-center">V6 Core</Text>
         <CustomWebNavLink href="/home" icon={icons.home} title="Início" />
         {user?.role === 'enfermeiro' && (
-          <CustomWebNavLink href="/enfermeiro/create" icon={icons.plus} title="Upload ECG" />
+          <CustomWebNavLink href="/enfermeiro/create" icon={icons.plus} title="Novo ECG" />
         )}
         {user?.role === 'medico' && (
           <CustomWebNavLink href="/medico/laudo" icon={icons.bookmark} title="Laudos" />
@@ -129,13 +129,13 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dinamica"
         options={{
-          title: user?.role === 'enfermeiro' ? 'Upload' : (user?.role === 'medico' ? 'Laudos' : 'Carregando'),
+          title: user?.role === 'enfermeiro' ? 'Novo ECG' : (user?.role === 'medico' ? 'Laudos' : 'Carregando'),
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
               icon={user?.role === 'enfermeiro' ? icons.plus : (user?.role === 'medico' ? icons.plus : icons.bookmark)}
               color={color}
-              name={user?.role === 'enfermeiro' ? 'Upload' : (user?.role === 'medico' ? 'Laudos' : 'Carregando')}
+              name={user?.role === 'enfermeiro' ? 'Novo ECG' : (user?.role === 'medico' ? 'Laudos' : 'Carregando')}
               focused={focused}
             />
           ),

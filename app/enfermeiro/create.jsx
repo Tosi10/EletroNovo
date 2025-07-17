@@ -113,86 +113,95 @@ const Create = () => {
 
   return (
     <SafeAreaView className="bg-primary h-full flex-1">
-      <ImageBackground source={images.cardio2} resizeMode="cover" style={StyleSheet.absoluteFillObject}>
-        <View pointerEvents="none" className="absolute inset-0 bg-black/20 z-10" />
+      <ImageBackground source={images.cardio2} resizeMode="cover" style={{ flex: 1 }}>
+        {/* Overlay branco translúcido para ofuscar e suavizar o fundo */}
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.1)', zIndex: 10 }]} />
 
-        <TouchableOpacity
-          onPress={() => router.replace('/home')}
-          style={{
-            position: 'absolute',
-            top: Platform.OS === 'ios' ? 80 : 50, // aumentado
-            left: 36, // aumentado
-            zIndex: 20,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            padding: 8,
-            borderRadius: 20
-          }}
-        >
-          <Image source={icons.leftArrow} style={{ width: 30, height: 23, tintColor: 'white' }} />
-        </TouchableOpacity>
+        <View style={{ flex: 1, zIndex: 20 }}>
+          <TouchableOpacity
+            onPress={() => router.replace('/home')}
+            style={{
+              position: 'absolute',
+              top: Platform.OS === 'ios' ? 80 : 50, // aumentado
+              left: 36, // aumentado
+              zIndex: 30,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              padding: 8,
+              borderRadius: 20
+            }}
+          >
+            <Image source={icons.leftArrow} style={{ width: 30, height: 23, tintColor: 'white' }} />
+          </TouchableOpacity>
 
-        <ScrollView className="px-4 my-6" contentContainerStyle={{ flexGrow: 1, zIndex: 2 }}>
-          <Text className="text-2xl text-white font-psemibold mb-4 mt-24">Upload de Eletrocardiograma</Text>
+          <ScrollView className="px-4 my-6" contentContainerStyle={{ flexGrow: 1, zIndex: 2 }}>
+            <Text className="text-2xl text-white font-psemibold mb-4 mt-24">Upload de Eletrocardiograma</Text>
 
-          <FormField title="Nome do Paciente" value={form.patientName} placeholder="Nome completo..." handleChangeText={(e) => setForm({ ...form, patientName: e })} otherStyles="mt-2" />
-          <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4" />
+            <FormField title="Nome do Paciente" value={form.patientName} placeholder="Nome completo..." handleChangeText={(e) => setForm({ ...form, patientName: e })} otherStyles="mt-2" />
+            <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4" />
 
-          <View className="mt-4">
-            <Text className="text-base text-black font-bold mb-2">Sexo</Text>
-            <View className="flex-row space-x-4">
-              {['Masculino', 'Feminino'].map((s) => (
-                <TouchableOpacity key={s} onPress={() => setForm({ ...form, sex: s })}
-                  className={`py-2 px-5 rounded-lg ${form.sex === s ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
-                  <Text className="text-white font-pmedium">{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View className="mt-4">
-            <Text className="text-lg text-black font-bold mb-2">Possui Marcapasso?</Text>
-            <View className="flex-row space-x-4">
-              {['Sim', 'Não'].map((v) => (
-                <TouchableOpacity key={v} onPress={() => setForm({ ...form, hasPacemaker: v })}
-                  className={`py-2 px-5 rounded-lg ${form.hasPacemaker === v ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
-                  <Text className="text-white font-pmedium">{v}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View className="mt-4">
-            <Text className="text-lg text-black font-bold mb-2">Prioridade</Text>
-            <View className="flex-row space-x-4">
-              {['Urgente', 'Eletivo'].map((p) => (
-                <TouchableOpacity key={p} onPress={() => setForm({ ...form, priority: p })}
-                  className={`py-2 px-5 rounded-lg ${form.priority === p ? 'bg-red-600' : 'bg-gray-800 border border-gray-700'}`}>
-                  <Text className="text-white font-pmedium">{p}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View className="mt-8 space-y-2">
-            <Text className="text-lg text-black font-bold">Imagem do ECG</Text>
-            {form.ecgFile ? (
-              <TouchableOpacity onPress={clearImage} className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
-                <Image source={{ uri: form.ecgFile.uri }} className="w-full h-full rounded-2xl" resizeMode="cover" />
-                <View className="absolute top-2 right-2 bg-red-500 rounded-full p-2">
-                  <Image source={icons.close} className="w-4 h-4" tintColor="#FFFFFF" />
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <View className="w-full h-16 px-4 bg-black-100 rounded-2xl justify-center items-center border-2 border-black-200">
-                <CustomButton title="Adicionar Imagem" handlePress={showImageOptions} containerStyles="w-full" textStyles="text-sm font-pmedium text-gray-100" icon={icons.upload} />
+            <View className="mt-4">
+              <Text className="text-base text-black font-bold mb-2">Sexo</Text>
+              <View className="flex-row space-x-4">
+                {['Masculino', 'Feminino'].map((s) => (
+                  <TouchableOpacity key={s} onPress={() => setForm({ ...form, sex: s })}
+                    className={`py-2 px-5 rounded-lg ${form.sex === s ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    <Text className="text-white font-pmedium">{s}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
-          </View>
+            </View>
 
-          <FormField title="Observações" value={form.notes} placeholder="Observações importantes..." handleChangeText={(e) => setForm({ ...form, notes: e })} otherStyles="mt-4" multiline numberOfLines={4} />
+            <View className="mt-4">
+              <Text className="text-lg text-black font-bold mb-2">Possui Marcapasso?</Text>
+              <View className="flex-row space-x-4">
+                {['Sim', 'Não'].map((v) => (
+                  <TouchableOpacity key={v} onPress={() => setForm({ ...form, hasPacemaker: v })}
+                    className={`py-2 px-5 rounded-lg ${form.hasPacemaker === v ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    <Text className="text-white font-pmedium">{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-          <CustomButton title="Enviar ECG para Laudo" handlePress={submit} containerStyles="mt-6 mb-10" isLoading={uploading} />
-        </ScrollView>
+            <View className="mt-4">
+              <Text className="text-lg text-black font-bold mb-2">Prioridade</Text>
+              <View className="flex-row space-x-4">
+                {['Urgente', 'Eletivo'].map((p) => (
+                  <TouchableOpacity key={p} onPress={() => setForm({ ...form, priority: p })}
+                    className={`py-2 px-5 rounded-lg ${form.priority === p ? 'bg-red-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    <Text className="text-white font-pmedium">{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View className="mt-8 space-y-2">
+              <Text className="text-lg text-black font-bold">Imagem do ECG</Text>
+              {form.ecgFile ? (
+                <TouchableOpacity onPress={clearImage} className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
+                  <Image source={{ uri: form.ecgFile.uri }} className="w-full h-full rounded-2xl" resizeMode="cover" />
+                  <View className="absolute top-2 right-2 bg-red-500 rounded-full p-2">
+                    <Image source={icons.close} className="w-4 h-4" tintColor="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <View className="w-full items-center mt-2">
+                  <CustomButton
+                    title="Adicionar Imagem"
+                    handlePress={showImageOptions}
+                    containerStyles="w-4/5 rounded-xl h-14"
+                    textStyles="text-sm font-pmedium text-gray-100"
+                    icon={icons.upload}
+                  />
+                </View>
+              )}
+            </View>
+
+            <FormField title="Observações" value={form.notes} placeholder="Observações importantes..." handleChangeText={(e) => setForm({ ...form, notes: e })} otherStyles="mt-4" multiline numberOfLines={4} />
+
+            <CustomButton title="Enviar ECG para Laudo" handlePress={submit} containerStyles="mt-6 mb-10" isLoading={uploading} />
+          </ScrollView>
+        </View>
       </ImageBackground>
     </SafeAreaView>
   );
