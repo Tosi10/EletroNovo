@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Image, SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { getEcgById, sendEcgMessage, subscribeToEcgMessages, markEcgMessagesAsRead } from '../../lib/firebase';
+import { getEcgById, markEcgMessagesAsRead, sendEcgMessage, subscribeToEcgMessages } from '../../lib/firebase';
 // >>> CORRIGIDO AQUI: Caminho da importação para 'constants' <<<
-import { icons } from '../../constants'; 
+import { icons } from '../../constants';
 
 // Componente para renderizar cada mensagem individualmente
 const MessageItem = ({ message, currentUserId }) => {
@@ -53,6 +53,14 @@ const ChatScreen = () => {
   const [loadingEcg, setLoadingEcg] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const flatListRef = useRef(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // 1. Efeito para carregar os detalhes do ECG
   useEffect(() => {
@@ -83,9 +91,15 @@ const ChatScreen = () => {
     console.log(`ChatScreen: Subscribing to messages for ECG ${ecgId} by user ${user.uid}`);
 
     const unsubscribe = subscribeToEcgMessages(ecgId, user.uid, (newMessages) => {
-      setMessages(newMessages);
-      if (flatListRef.current) {
-        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+      if (isMounted.current) {
+        setMessages(newMessages);
+        if (flatListRef.current) {
+          setTimeout(() => {
+            if (flatListRef.current) {
+              flatListRef.current.scrollToEnd({ animated: true });
+            }
+          }, 100);
+        }
       }
     });
 

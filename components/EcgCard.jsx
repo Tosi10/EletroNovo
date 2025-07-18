@@ -139,10 +139,10 @@ const EcgCard = ({ ecg, currentUserId }) => {
         <View style={{ position: 'relative' }}>
           <TouchableOpacity 
             onPress={handleChatPress}
-            className="flex-row items-center bg-secondary-200 px-5 py-2 rounded-xl mt-2"
-            style={{ alignItems: 'center', justifyContent: 'center' }}
+            className="flex-row items-center px-3 py-2 rounded-xl mt-2"
+            style={{ alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFA001' }}
           >
-            <Image source={icons.chat} className="w-3.4 h-5 mr-1" tintColor="#FFF" />
+            <Image source={icons.chat} className="w-5 h-5 mr-2" tintColor="#FFF" />
             <Text className="text-white font-pmedium text-md text-center">Chat</Text>
           </TouchableOpacity>
           {/* Badge absoluto para mensagens não lidas */}
