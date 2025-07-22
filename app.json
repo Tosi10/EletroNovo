@@ -1,11 +1,11 @@
     {
       "expo": {
-        "name": "eletronovo",
+        "name": "V6 Core",
         "scheme": "eletronovo",
         "slug": "rodrigo",
         "version": "1.0.0",
         "orientation": "default",
-        "icon": "./assets/icon.png",
+        "icon": "./assets/images/cardio2.png",
         "userInterfaceStyle": "light",
         "newArchEnabled": false,
         "splash": {
@@ -23,7 +23,7 @@
         },
         "android": {
           "adaptiveIcon": {
-            "foregroundImage": "./assets/adaptive-icon.png",
+            "foregroundImage": "./assets/images/cardio2.png",
             "backgroundColor": "#ffffff"
           },
           "package": "com.v6core.rodrigo",
