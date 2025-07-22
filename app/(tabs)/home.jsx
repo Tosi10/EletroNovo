@@ -40,7 +40,7 @@ const Home = () => {
         pointerEvents="none"
         style={{
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(0,0,0,0.2)',
+          backgroundColor: 'rgba(0,0,0,0.55)', // Mais escuro para contraste
           zIndex: 1,
         }}
       />
@@ -60,28 +60,30 @@ const Home = () => {
           {/* Conteúdo principal da Home, adaptado do seu ListHeaderComponent */}
           <View className="my-6 px-4 space-y-6 flex-1 justify-center items-center">
             <View className="justify-center items-center mb-6">
-              <Text className="font-pmedium text-sm text-gray-100">
+              <Text className="font-pmedium text-sm text-gray-100" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 3 }}>
                 Bem-vindo de volta,
               </Text>
-              <Text className="text-3xl font-psemibold text-white mt-1">
+              <Text className="text-3xl font-psemibold text-white mt-1" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 2}, textShadowRadius: 6 }}>
                 {user?.username || 'Usuário'}
               </Text>
             </View>
 
             {/* Seções de texto informativas */}
             <View className="w-full pt-7 pb-8 items-center">
-              <Text className="text-gray-700 text-3xl font-pregular mb-3 text-center">
-                V6 Core
-              </Text>
-              <Text className="text-white text-xl font-psemibold mb-2 text-center">
-                Sua Plataforma para Gestão de ECGs
-              </Text>
-              <Text className="text-gray-100 text-lg text-center leading-relaxed">
-                Conectando enfermeiros e médicos para facilitar o upload, a análise e o laudo de exames de eletrocardiograma.
-              </Text>
-              <Text className="text-gray-100 text-base mt-2 text-center leading-relaxed">
-                Explore as abas para enviar novos exames, visualizar laudos e gerenciar seu perfil.
-              </Text>
+              <View style={{ backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 18, padding: 16, width: '100%', alignItems: 'center' }}>
+                <Text className="text-3xl font-pbold text-white mb-3 text-center" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 2}, textShadowRadius: 8 }}>
+                  V6 Core
+                </Text>
+                <Text className="text-xl font-psemibold text-white mb-2 text-center" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 4 }}>
+                  Sua Plataforma para Gestão de ECGs
+                </Text>
+                <Text className="text-lg text-white text-center leading-relaxed" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 3 }}>
+                  Conectando enfermeiros e médicos para facilitar o upload, a análise e o laudo de exames de eletrocardiograma.
+                </Text>
+                <Text className="text-base mt-2 text-white text-center leading-relaxed" style={{ textShadowColor: '#000', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 3 }}>
+                  Explore as abas para enviar novos exames, visualizar laudos e gerenciar seu perfil.
+                </Text>
+              </View>
             </View>
           </View>
         </ScrollView>

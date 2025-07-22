@@ -1,5 +1,6 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { db, getCurrentUser } from "../lib/firebase";
@@ -41,6 +42,18 @@ const GlobalProvider = ({ children }) => {
   const [isLogged, setIsLogged] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Listener para abrir chat ao clicar na notificação push
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data && data.ecgId) {
+        // Abre o chat do ECG correspondente
+        router.push(`/chat/${data.ecgId}`);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const fetchUser = useCallback(async () => {
     setLoading(true);

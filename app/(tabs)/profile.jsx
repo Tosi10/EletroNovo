@@ -20,7 +20,6 @@ const Profile = () => {
   const fetchEcgsFunction = useCallback(() => {
     if (!user?.uid) return Promise.resolve([]);
     if (user?.role === 'enfermeiro') {
-      
       return getUserPosts(user.uid);
     } else if (user?.role === 'medico') {
       return getLaudedEcgsByDoctorId(user.uid);
@@ -119,6 +118,8 @@ const Profile = () => {
               <Image source={icons.logout}
                 resizeMode='contain' className="w-6 h-6" />
             </TouchableOpacity>
+
+            {/* Botão de teste de notificação push removido */}
 
             <View className="w-24 h-24 border border-secondary rounded-full justify-center items-center p-1">
               <Image

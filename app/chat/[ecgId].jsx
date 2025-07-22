@@ -28,7 +28,10 @@ const MessageItem = ({ message, currentUserId }) => {
             {message.sender?.username || 'Usuário Desconhecido'}
           </Text>
         )}
-        <Text className="text-white font-pregular text-base">{message.message}</Text>
+        {/* Remover exibição de imagem */}
+        {message.message ? (
+          <Text className="text-white font-pregular text-base">{message.message}</Text>
+        ) : null}
         <Text className={`text-xs mt-1 ${isMyMessage ? 'text-gray-300 self-end' : 'text-gray-400 self-start'}`}>
           {timeString} {isMyMessage && message.isRead && '✓'} {/* Adiciona o check de lido para suas mensagens */}
         </Text>
@@ -54,6 +57,10 @@ const ChatScreen = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const flatListRef = useRef(null);
   const isMounted = useRef(true);
+  // Remover estados relacionados a imagem
+  // const [imageModalVisible, setImageModalVisible] = useState(false);
+  // const [modalImageUrl, setModalImageUrl] = useState(null);
+  // const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -159,6 +166,32 @@ const ChatScreen = () => {
     }
   };
 
+  // Remover função handlePickImage
+  // Função para selecionar e enviar imagem
+  // const handlePickImage = async () => {
+  //   if (uploadingImage) return;
+  //   try {
+  //     const result = await ImagePicker.launchImageLibraryAsync({
+  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //       allowsEditing: false,
+  //       quality: 0.7,
+  //     });
+  //     if (!result.canceled && result.assets && result.assets.length > 0) {
+  //       setUploadingImage(true);
+  //       const file = {
+  //         uri: result.assets[0].uri,
+  //         fileName: result.assets[0].fileName || `chatimg_${Date.now()}.jpg`,
+  //       };
+  //       const imageUrl = await uploadFile(file, 'image');
+  //       await sendEcgMessage(ecgId, user.uid, '', imageUrl); // mensagem vazia, só imagem
+  //       setUploadingImage(false);
+  //     }
+  //   } catch (e) {
+  //     setUploadingImage(false);
+  //     Alert.alert('Erro', 'Não foi possível enviar a imagem.');
+  //   }
+  // };
+
   const MemoizedMessageItem = useCallback(({ item }) => (
     <MessageItem message={item} currentUserId={user?.uid} />
   ), [user?.uid]);
@@ -215,6 +248,7 @@ const ChatScreen = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View className="flex-row items-center px-4 py-3 border-t border-gray-700 bg-black-100">
+          {/* Remover botão de upload de imagem */}
           <TextInput
             className="flex-1 h-12 bg-gray-800 rounded-lg px-4 text-white font-pregular text-base mr-3"
             placeholder="Digite sua mensagem..."
@@ -223,11 +257,12 @@ const ChatScreen = () => {
             onChangeText={setNewMessage}
             multiline
             maxLength={500}
-            editable={!sendingMessage}
+            style={{ opacity: 1 }}
+            editable={true}
           />
           <TouchableOpacity
             onPress={handleSendMessage}
-            className={`p-3 rounded-lg ${sendingMessage ? 'bg-gray-600' : 'bg-secondary-100'}`}
+            className={`p-3 rounded-lg ${sendingMessage || !newMessage.trim() ? 'bg-gray-600' : 'bg-secondary-100'}`}
             disabled={sendingMessage || !newMessage.trim()}
           >
             {sendingMessage ? (
@@ -237,9 +272,11 @@ const ChatScreen = () => {
             )}
           </TouchableOpacity>
         </View>
+        {/* Remover Modal de visualização de imagem */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 export default ChatScreen;
+

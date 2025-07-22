@@ -11,6 +11,8 @@ import plus from "../assets/icons/plus.png";
 import profile from "../assets/icons/profile.png";
 import rightArrow from "../assets/icons/right-arrow.png";
 import search from "../assets/icons/search.png";
+import send from "../assets/icons/send.jpg";
+import send1 from "../assets/icons/send1.png";
 import upload from "../assets/icons/upload.png";
 
 export default {
@@ -28,4 +30,6 @@ export default {
   eyeHide,
   eye,
   chat,
+  send,
+  send1
 };

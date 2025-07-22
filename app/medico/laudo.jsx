@@ -159,7 +159,7 @@ const Laudo = () => {
 
   const RadioGroup = ({ label, options, selectedOption, onSelect }) => (
     <View className="mt-7">
-      <Text className="text-base text-gray-100 font-pmedium mb-2">{label}</Text>
+      <Text className="text-lg text-white font-bold mb-2">{label}</Text>
       <View className="flex-row flex-wrap">
         {options.map((option, index) => (
           <TouchableOpacity key={index} onPress={() => onSelect(option)}
