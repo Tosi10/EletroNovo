@@ -2,7 +2,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Platform, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { getEcgById, markEcgMessagesAsRead, sendEcgMessage, subscribeToEcgMessages } from '../../lib/firebase';
+import { getEcgById, getUserPushToken, markEcgMessagesAsRead, sendEcgMessage, sendPushNotification, subscribeToEcgMessages } from '../../lib/firebase';
 // >>> CORRIGIDO AQUI: Caminho da importação para 'constants' <<<
 import { icons } from '../../constants';
 
@@ -127,6 +127,29 @@ const ChatScreen = () => {
     setSendingMessage(true);
     try {
       await sendEcgMessage(ecgId, user.uid, newMessage);
+      // Envio de push notification para o outro participante do chat
+      // Busca detalhes do ECG para saber quem é o outro participante
+      const ecg = ecgDetails || await getEcgById(ecgId);
+      let recipientId = null;
+      if (user.uid === ecg.uploaderId && ecg.laudationDoctorId) {
+        recipientId = ecg.laudationDoctorId;
+      } else if (user.uid === ecg.laudationDoctorId && ecg.uploaderId) {
+        recipientId = ecg.uploaderId;
+      }
+      if (recipientId) {
+        try {
+          const token = await getUserPushToken(recipientId);
+          if (token) {
+            await sendPushNotification(
+              token,
+              'Nova mensagem no chat do ECG',
+              `Você recebeu uma nova mensagem sobre o exame de ${ecg.patientName}`
+            );
+          }
+        } catch (e) {
+          console.error('Erro ao enviar push notification:', e);
+        }
+      }
       setNewMessage(''); 
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
@@ -156,38 +179,41 @@ const ChatScreen = () => {
           headerShown: true,
           headerBackVisible: false,
           headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="p-2">
-              <Image source={icons.leftArrow} className="w-6 h-6" tintColor="#FFA001" />
+            <TouchableOpacity onPress={() => router.back()} className="ml-2 tp-7">
+              <Image source={icons.leftArrow} className="w- h-6" tintColor="#FFA001" />
             </TouchableOpacity>
           ),
-          headerTitle: ecgDetails.patientName ? `Chat com ${ecgDetails.patientName}` : 'Chat do ECG',
-          headerTitleStyle: { color: '#FFFFFF', fontFamily: 'Poppins-SemiBold' },
+          headerTitle: () => (
+            <Text className="text-white font-psemibold text-lg ml-6">
+              {ecgDetails.patientName ? `Chat com ${ecgDetails.patientName}` : 'Chat do ECG'}
+            </Text>
+          ),
+          headerTitleStyle: { color: '#FFFFFF', fontFamily: 'Poppins-SemiBold', paddingLeft: 24 },
           headerStyle: { backgroundColor: '#161622' },
         }}
       />
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={MemoizedMessageItem}
+        className="px-4 py-2 flex-1"
+        onContentSizeChange={() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: true });
+          }
+        }}
+        ListEmptyComponent={() => (
+          <View className="flex-1 justify-center items-center">
+            <Text className="text-gray-400 text-lg">Nenhuma mensagem ainda.</Text>
+            <Text className="text-gray-400 text-sm">Seja o primeiro a enviar uma mensagem!</Text>
+          </View>
+        )}
+      />
       <KeyboardAvoidingView
-        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0} 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={MemoizedMessageItem}
-          className="px-4 py-2 flex-1"
-          onContentSizeChange={() => {
-            if (flatListRef.current) {
-              flatListRef.current.scrollToEnd({ animated: true });
-            }
-          }}
-          ListEmptyComponent={() => (
-            <View className="flex-1 justify-center items-center">
-              <Text className="text-gray-400 text-lg">Nenhuma mensagem ainda.</Text>
-              <Text className="text-gray-400 text-sm">Seja o primeiro a enviar uma mensagem!</Text>
-            </View>
-          )}
-        />
         <View className="flex-row items-center px-4 py-3 border-t border-gray-700 bg-black-100">
           <TextInput
             className="flex-1 h-12 bg-gray-800 rounded-lg px-4 text-white font-pregular text-base mr-3"
@@ -207,7 +233,7 @@ const ChatScreen = () => {
             {sendingMessage ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Image source={icons.send} className="w-6 h-6" tintColor="#FFF" />
+              <Image source={icons.send1} className="w-6 h-6" tintColor="#FFF" />
             )}
           </TouchableOpacity>
         </View>
