@@ -168,7 +168,7 @@ const Create = () => {
               <View className="flex-row space-x-4">
                 {['Urgente', 'Eletivo'].map((p) => (
                   <TouchableOpacity key={p} onPress={() => setForm({ ...form, priority: p })}
-                    className={`py-2 px-5 rounded-lg ${form.priority === p ? 'bg-red-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    className={`py-2 px-5 rounded-lg ${form.priority === p ? (p === 'Urgente' ? 'bg-red-600' : 'bg-blue-600') : 'bg-gray-800 border border-gray-700'}`}>
                     <Text className="text-white font-pmedium">{p}</Text>
                   </TouchableOpacity>
                 ))}
@@ -178,12 +178,15 @@ const Create = () => {
             <View className="mt-8 space-y-2">
               <Text className="text-lg text-black font-bold">Imagem do ECG</Text>
               {form.ecgFile ? (
-                <TouchableOpacity onPress={clearImage} className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
+                <View className="relative w-full h-64 rounded-2xl border-2 border-black-200 justify-center items-center">
                   <Image source={{ uri: form.ecgFile.uri }} className="w-full h-full rounded-2xl" resizeMode="cover" />
-                  <View className="absolute top-2 right-2 bg-red-500 rounded-full p-2">
-                    <Image source={icons.close} className="w-4 h-4" tintColor="#FFFFFF" />
+                  <TouchableOpacity onPress={clearImage} style={{ position: 'absolute', top: 8, right: 8, zIndex: 20 }}>
+                    <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', textShadowColor: 'black', textShadowOffset: {width: 1, height: 1}, textShadowRadius: 4 }}>×</Text>
+                  </TouchableOpacity>
+                  <View className="absolute bottom-2 left-0 right-0 items-center z-10">
+                    <Text className="text-white bg-black bg-opacity-60 px-3 py-1 rounded-full text-xs">Toque no X para remover</Text>
                   </View>
-                </TouchableOpacity>
+                </View>
               ) : (
                 <View className="w-full items-center mt-2">
                   <CustomButton

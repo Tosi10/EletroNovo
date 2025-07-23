@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
@@ -8,7 +9,7 @@ import CustomButton from '../../components/CustomButton';
 import FormField from '../../components/FormField';
 import { icons } from '../../constants';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { getEcgMessages, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
+import { db, getEcgMessages, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
 import { generateLaudo } from '../../lib/generateLaudo';
 
 const Laudo = () => {
@@ -27,6 +28,7 @@ const Laudo = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOutroRepolarizacao, setShowOutroRepolarizacao] = useState(false);
+  const [draftEcgs, setDraftEcgs] = useState([]);
 
   const ritmoOptions = ['Sinusal', 'Ectópico Atrial', 'Juncional', 'Fibrilação Atrial', 'Flutter Atrial', 'MP (Marcapasso)', 'Outro'];
   const repolarizacaoOptions = ['Normal', 'Alteração difusa da repolarização ventricular', 'Infradesnivelamento', 'Supradesnivelamento', 'Outro'];
@@ -78,6 +80,19 @@ const Laudo = () => {
         const allEcgs = await getPendingEcgs();
         setUrgentEcgs(allEcgs.filter(e => e.priority === 'Urgente'));
         setElectiveEcgs(allEcgs.filter(e => e.priority === 'Eletivo'));
+        // Buscar drafts do médico logado (status draft e laudationDoctorId = user.uid)
+        if (user?.uid) {
+          const qDrafts = query(
+            collection(db, 'ecgs'),
+            where('status', '==', 'draft'),
+            where('laudationDoctorId', '==', user.uid),
+            orderBy('createdAt', 'desc')
+          );
+          const snapDrafts = await getDocs(qDrafts);
+          setDraftEcgs(snapDrafts.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } else {
+          setDraftEcgs([]);
+        }
       } catch (error) {
         Alert.alert('Erro', 'Não foi possível carregar os exames.');
       } finally {
@@ -120,6 +135,26 @@ const Laudo = () => {
       });
       Alert.alert('Sucesso', 'Laudo enviado!');
       setSelectedEcg(null);
+    } catch (err) {
+      Alert.alert('Erro', err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const saveLaudoDraft = async () => {
+    if (!selectedEcg || !user?.uid) {
+      Alert.alert('Erro', 'Selecione um ECG.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal || '', user.uid, {
+        ritmo: laudoForm.ritmo, fc: laudoForm.fc, pr: laudoForm.pr, qrs: laudoForm.qrs,
+        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, repolarizacao: laudoForm.repolarizacao, outrosAchados: laudoForm.outrosAchados,
+        status: 'draft',
+      });
+      Alert.alert('Rascunho salvo', 'Seu rascunho foi salvo. Você pode continuar depois.');
     } catch (err) {
       Alert.alert('Erro', err.message);
     } finally {
@@ -212,7 +247,7 @@ const Laudo = () => {
               </TouchableOpacity>
             ))}
 
-            <Text className="text-xl text-orange-400 font-psemibold text-center mt-8 mb-2">ELETIVO</Text>
+            <Text className="text-xl text-blue-400 font-psemibold text-center mt-8 mb-2">ELETIVO</Text>
             {electiveEcgs.length === 0 ? (
               <Text className="text-gray-100 text-center mb-4">Nenhum ECG eletivo pendente.</Text>
             ) : electiveEcgs.map(ecg => (
@@ -228,6 +263,50 @@ const Laudo = () => {
                 <Text className="text-xs text-gray-300 ml-2">{ecg.priority}</Text>
               </TouchableOpacity>
             ))}
+
+            {/* Lista de ECGs salvos como rascunho */}
+            <Text className="text-xl text-yellow-400 font-psemibold text-center mt-8 mb-2">SALVOS</Text>
+            {draftEcgs.length === 0 ? (
+              <Text className="text-gray-100 text-center mb-4">Nenhum ECG salvo como rascunho.</Text>
+            ) : draftEcgs.map(ecg => {
+                let borderColor = 'border-yellow-400';
+                if (ecg.priority === 'Urgente') borderColor = 'border-red-500';
+                else if (ecg.priority === 'Eletivo') borderColor = 'border-blue-500';
+                return (
+                  <TouchableOpacity
+                    key={ecg.id}
+                    onPress={() => {
+                      setSelectedEcg(ecg);
+                      // Preencher o formulário com os dados do rascunho, se existirem
+                      if (ecg.laudationDetails) {
+                        try {
+                          const details = JSON.parse(ecg.laudationDetails);
+                          setLaudoForm({
+                            ritmo: details.ritmo || '',
+                            fc: details.fc || '',
+                            pr: details.pr || '',
+                            qrs: details.qrs || '',
+                            eixo: details.eixo || '',
+                            bre: details.bre || false,
+                            brd: details.brd || false,
+                            repolarizacao: details.repolarizacao || '',
+                            outrosAchados: details.outrosAchados || '',
+                            laudoFinal: ecg.laudationContent || ''
+                          });
+                        } catch {
+                          setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                        }
+                      } else {
+                        setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                      }
+                    }}
+                    className={`flex-row items-center bg-black-100 rounded-lg border-2 px-4 py-3 mb-2 ${borderColor}`}
+                  >
+                    <Text className="text-white font-pmedium flex-1">{ecg.patientName} ({ecg.age} anos) - {ecg.sex}</Text>
+                    <Text className="text-xs text-yellow-400 ml-2">Rascunho</Text>
+                  </TouchableOpacity>
+                );
+              })}
           </>
         ) : null}
 
@@ -269,6 +348,12 @@ const Laudo = () => {
             )}
             <FormField title="Outros Achados" value={laudoForm.outrosAchados} handleChangeText={(e) => updateFormAndGenerateLaudo('outrosAchados', e)} otherStyles="mt-7" multiline />
             <FormField title="Laudo Final" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
+            <CustomButton
+              title="Salvar Rascunho"
+              handlePress={saveLaudoDraft}
+              containerStyles="mt-7 bg-gray-400"
+              isLoading={isSubmitting}
+            />
             <CustomButton title="Submeter Laudo" handlePress={submitLaudo} containerStyles="mt-7" isLoading={isSubmitting} />
             {/* <CustomButton
               title={isGenerating ? 'Gerando laudo...' : 'Gerar laudo automático'}
