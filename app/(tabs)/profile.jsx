@@ -107,7 +107,7 @@ const Profile = () => {
         data={filteredEcgs}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <EcgCard ecg={item} currentUserId={user?.uid} />
+          <EcgCard ecg={item} currentUserId={user?.uid} userRole={user?.role} onReviewRequested={refetch} />
         )}
         ListHeaderComponent={() => (
           <View className="w-full justify-center items-center mt-6 mb-12 px-4">

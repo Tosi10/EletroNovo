@@ -3,12 +3,13 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Text, TouchableOpacity, View } from 'react-native';
 import { icons } from '../constants';
-import { db, markEcgMessagesAsRead } from '../lib/firebase';
+import { db, markEcgMessagesAsRead, requestEcgReview } from '../lib/firebase';
 
 // Adicionado 'currentUserId' como prop
-const EcgCard = ({ ecg, currentUserId }) => {
+const EcgCard = ({ ecg, currentUserId, userRole, onReviewRequested }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingUnread, setLoadingUnread] = useState(true);
+  // Remover: const [reviewRequested, setReviewRequested] = useState(false);
 
   // LOGS DE DEPURACAO (mantidos se você quiser continuar depurando o conteúdo do laudo)
   useEffect(() => {
@@ -154,6 +155,43 @@ const EcgCard = ({ ecg, currentUserId }) => {
             </View>
           ) : null}
         </View>
+        {/* Botão de revisão para enfermeiro */}
+        {userRole === 'enfermeiro' && ecg.status === 'lauded' && !ecg.reviewRequested && (
+          <TouchableOpacity
+            style={{
+              marginTop: 8,
+              backgroundColor: '#FFA001',
+              borderRadius: 8,
+              padding: 10,
+              alignItems: 'center',
+              alignSelf: 'stretch',
+            }}
+            onPress={() => {
+              Alert.alert(
+                'Solicitar Revisão',
+                'Tem certeza que deseja solicitar revisão deste ECG? Esta ação não pode ser desfeita.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Confirmar', style: 'destructive', onPress: async () => {
+                      try {
+                        await requestEcgReview(ecg.id);
+                        if (onReviewRequested) onReviewRequested();
+                        Alert.alert('Sucesso', 'Revisão solicitada com sucesso!');
+                      } catch (e) {
+                        Alert.alert('Erro', 'Não foi possível solicitar revisão. Tente novamente.');
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <Text style={{ color: '#333', fontWeight: 'bold' }}>Solicitar Revisão</Text>
+          </TouchableOpacity>
+        )}
+        {userRole === 'enfermeiro' && ecg.status === 'lauded' && ecg.reviewRequested && (
+          <Text style={{ color: '#FFA001', fontWeight: 'bold', marginTop: 8 }}>Revisão já solicitada</Text>
+        )}
       </View>
     </View>
   );

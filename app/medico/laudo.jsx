@@ -9,7 +9,7 @@ import CustomButton from '../../components/CustomButton';
 import FormField from '../../components/FormField';
 import { icons } from '../../constants';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { db, getEcgMessages, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
+import { db, getEcgMessages, getEcgsForReview, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
 import { generateLaudo } from '../../lib/generateLaudo';
 
 const Laudo = () => {
@@ -29,6 +29,7 @@ const Laudo = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOutroRepolarizacao, setShowOutroRepolarizacao] = useState(false);
   const [draftEcgs, setDraftEcgs] = useState([]);
+  const [reviewEcgs, setReviewEcgs] = useState([]);
 
   const ritmoOptions = ['Sinusal', 'Ectópico Atrial', 'Juncional', 'Fibrilação Atrial', 'Flutter Atrial', 'MP (Marcapasso)', 'Outro'];
   const repolarizacaoOptions = ['Normal', 'Alteração difusa da repolarização ventricular', 'Infradesnivelamento', 'Supradesnivelamento', 'Outro'];
@@ -93,6 +94,9 @@ const Laudo = () => {
         } else {
           setDraftEcgs([]);
         }
+        // Buscar ECGs para revisão
+        const reviewList = await getEcgsForReview();
+        setReviewEcgs(reviewList);
       } catch (error) {
         Alert.alert('Erro', 'Não foi possível carregar os exames.');
       } finally {
@@ -307,6 +311,23 @@ const Laudo = () => {
                   </TouchableOpacity>
                 );
               })}
+            {/* Lista de ECGs para revisão */}
+            <Text className="text-xl text-purple-400 font-psemibold text-center mt-8 mb-2">PARA REVISÃO</Text>
+            {reviewEcgs.length === 0 ? (
+              <Text className="text-gray-100 text-center mb-4">Nenhum ECG aguardando revisão.</Text>
+            ) : reviewEcgs.map(ecg => (
+              <TouchableOpacity
+                key={ecg.id}
+                onPress={() => {
+                  setSelectedEcg(ecg);
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                }}
+                className={`flex-row items-center bg-black-100 rounded-lg border-2 border-purple-400 px-4 py-3 mb-2`}
+              >
+                <Text className="text-white font-pmedium flex-1">{ecg.patientName} ({ecg.age} anos) - {ecg.sex}</Text>
+                <Text className="text-xs text-purple-400 ml-2">Revisão</Text>
+              </TouchableOpacity>
+            ))}
           </>
         ) : null}
 
