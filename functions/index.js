@@ -128,10 +128,7 @@ exports.sendLaudationEmail = functions.firestore
                     ${formattedDetails}
                   </ul>
 
-                  <div class="section-title">Laudo Final</div>
-                  <div class="conclusion">
-                      <p>${newData.laudationContent.replace(/\n/g, '<br>')}</p>
-                  </div>
+                  
 
                   ${newData.imageUrl ? `
                   <div class="section-title">Imagem do ECG</div>

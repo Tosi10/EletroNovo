@@ -186,7 +186,7 @@ const EcgCard = ({ ecg, currentUserId, userRole, onReviewRequested }) => {
               );
             }}
           >
-            <Text style={{ color: '#333', fontWeight: 'bold' }}>Solicitar Revisão</Text>
+            <Text style={{ color: 'blue', fontWeight: 'bold' }}>Solicitar Revisão</Text>
           </TouchableOpacity>
         )}
         {userRole === 'enfermeiro' && ecg.status === 'lauded' && ecg.reviewRequested && (

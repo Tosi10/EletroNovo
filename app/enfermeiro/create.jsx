@@ -115,7 +115,7 @@ const Create = () => {
     <SafeAreaView className="bg-primary h-full flex-1">
       <ImageBackground source={images.cardio2} resizeMode="cover" style={{ flex: 1 }}>
         {/* Overlay branco translúcido para ofuscar e suavizar o fundo */}
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.1)', zIndex: 10 }]} />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.3)', zIndex: 10 }]} />
 
         <View style={{ flex: 1, zIndex: 20 }}>
           <TouchableOpacity
@@ -134,10 +134,10 @@ const Create = () => {
           </TouchableOpacity>
 
           <ScrollView className="px-4 my-6" contentContainerStyle={{ flexGrow: 1, zIndex: 2 }}>
-            <Text className="text-2xl text-white font-psemibold mb-4 mt-24">Upload de Eletrocardiograma</Text>
+            <Text className="text-3xl text-black font-psemibold mb-4 mt-24">Envio de Eletrocardiograma</Text>
 
             <FormField title="Nome do Paciente" value={form.patientName} placeholder="Nome completo..." handleChangeText={(e) => setForm({ ...form, patientName: e })} otherStyles="mt-2" />
-            <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4" />
+            <FormField title="Idade" value={form.age} placeholder="Idade..." keyboardType="numeric" handleChangeText={(e) => setForm({ ...form, age: e })} otherStyles="mt-4 " />
 
             <View className="mt-4">
               <Text className="text-base text-black font-bold mb-2">Sexo</Text>
@@ -200,7 +200,7 @@ const Create = () => {
               )}
             </View>
 
-            <FormField title="Observações" value={form.notes} placeholder="Observações importantes..." handleChangeText={(e) => setForm({ ...form, notes: e })} otherStyles="mt-4" multiline numberOfLines={4} />
+            <FormField title="Descrição do caso" value={form.notes} placeholder="Observações importantes..." handleChangeText={(e) => setForm({ ...form, notes: e })} otherStyles="mt-4"  multiline numberOfLines={4} />
 
             <CustomButton title="Enviar ECG para Laudo" handlePress={submit} containerStyles="mt-6 mb-10" isLoading={uploading} />
           </ScrollView>
