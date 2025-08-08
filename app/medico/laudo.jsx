@@ -20,14 +20,22 @@ const Laudo = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false); 
   const [laudoForm, setLaudoForm] = useState({
-    ritmo: '', fc: '', pr: '', qrs: '', eixo: '',
-    bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: ''
+    ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '',
+    bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [],
+    laudoFinal: ''
   });
   const [urgentEcgs, setUrgentEcgs] = useState([]);
   const [electiveEcgs, setElectiveEcgs] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showOutroRepolarizacao, setShowOutroRepolarizacao] = useState(false);
+  const [showDerivacoes, setShowDerivacoes] = useState(false);
+  const [showOutroRitmo, setShowOutroRitmo] = useState(false);
+  const [showMarcapassoTipo, setShowMarcapassoTipo] = useState(false);
+  const [showPrAnormal, setShowPrAnormal] = useState(false);
+  const [showQrsAnormal, setShowQrsAnormal] = useState(false);
+  const [showEixoAnormal, setShowEixoAnormal] = useState(false);
+  const [showQtAnormal, setShowQtAnormal] = useState(false);
   const [draftEcgs, setDraftEcgs] = useState([]);
   const [reviewEcgs, setReviewEcgs] = useState([]);
 
@@ -38,21 +46,76 @@ const Laudo = () => {
     let lines = [];
     if (form.ritmo) lines.push(`Ritmo: ${form.ritmo}.`);
     if (form.fc) lines.push(`Frequência Cardíaca: ${form.fc} bpm.`);
-    if (form.pr) lines.push(`Intervalo PR: ${form.pr} ms.`);
-    if (form.qrs) lines.push(`Duração QRS: ${form.qrs} ms.`);
-    if (form.eixo) lines.push(`Eixo elétrico: ${form.eixo}°.`);
+    if (form.pr) {
+      if (form.pr === 'Normal') {
+        lines.push(`Intervalo PR: Normal.`);
+      } else if (form.prTipo === 'WPW') {
+        lines.push(`Intervalo PR: ${form.pr} ms - Wolff-Parkinson-White.`);
+      } else if (form.prTipo === 'BAV 1º') {
+        lines.push(`Intervalo PR: ${form.pr} ms - Bloqueio Atrioventricular de Primeiro Grau.`);
+      } else {
+        lines.push(`Intervalo PR: ${form.pr} ms.`);
+      }
+    }
+    if (form.qrs) lines.push(`Duração QRS: ${form.qrs === 'Normal' ? 'Normal' : form.qrs + ' ms'}.`);
+    if (form.eixo) lines.push(`Eixo elétrico: ${form.eixo === 'Normal' ? 'Normal' : form.eixo + '°'}.`);
+    if (form.qt) lines.push(`Intervalo QT: ${form.qt === 'Normal' ? 'Normal' : form.qt }.`);
     let bloqueios = [];
     if (form.bre) bloqueios.push('Bloqueio de ramo esquerdo');
     if (form.brd) bloqueios.push('Bloqueio de ramo direito');
+    if (form.bdase) bloqueios.push('Bloqueio Divisional Anterossuperior Esquerdo');
+    if (form.dcrd) bloqueios.push('Distúrbio de Condução do Ramo Direito');
     if (bloqueios.length) lines.push(`${bloqueios.join(' e ')}.`);
-    if (form.repolarizacao) lines.push(`${form.repolarizacao}.`); // Apenas o valor, sem prefixo
-    if (form.outrosAchados) lines.push(`Outros Achados: ${form.outrosAchados}.`);
+    if (form.repolarizacao) {
+      if (form.derivacoes && Array.isArray(form.derivacoes) && form.derivacoes.length > 0) {
+        lines.push(`${form.repolarizacaoTipo} de ${form.derivacoes.join(', ')}.`);
+      } else {
+        lines.push(`${form.repolarizacao}.`);
+      }
+    }
+
     return lines.join('\n');
+  };
+
+  const calculateQTc = (quadrados, bpm) => {
+    if (!quadrados || !bpm || quadrados <= 0 || bpm <= 0) return '';
+    
+    // Fórmula de Framingham: QTcms = (QTquadradinhos × 40) + 0.154 × (1000 - 60000/BPM)
+    const qtcMs = (parseFloat(quadrados) * 40) + 0.154 * (1000 - (60000 / parseFloat(bpm)));
+    
+    // Determinar se é normal, prolongado ou curto
+    if (qtcMs > 450) {
+      return `${qtcMs.toFixed(0)} ms (Prolongado)`;
+    } else if (qtcMs < 350) {
+      return `${qtcMs.toFixed(0)} ms (Curto)`;
+    } else {
+      return `${qtcMs.toFixed(0)} ms (Normal)`;
+    }
+  };
+
+  const toggleDerivacao = (derivacao) => {
+    setLaudoForm(prev => {
+      const derivacoes = prev.derivacoes.includes(derivacao)
+        ? prev.derivacoes.filter(d => d !== derivacao)
+        : [...prev.derivacoes, derivacao];
+      
+      const updated = { ...prev, derivacoes };
+      updated.laudoFinal = generateLaudoFinal(updated);
+      return updated;
+    });
   };
 
   const updateFormAndGenerateLaudo = (field, value) => {
     setLaudoForm(prev => {
       const updated = { ...prev, [field]: value };
+      
+      // Se for campo de QT quadrados ou BPM, calcular automaticamente o QTc
+      if (field === 'qtQuadrados' || field === 'qtBpm') {
+        const quadrados = field === 'qtQuadrados' ? value : updated.qtQuadrados;
+        const bpm = field === 'qtBpm' ? value : updated.qtBpm;
+        updated.qt = calculateQTc(quadrados, bpm);
+      }
+      
       if (field !== 'laudoFinal') updated.laudoFinal = generateLaudoFinal(updated);
       return updated;
     });
@@ -61,7 +124,14 @@ const Laudo = () => {
   const fetchAndSelectFirstEcg = useCallback(async (priorityType) => {
     setLoadingEcgs(true);
     setSelectedEcg(null);
-    setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+    setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
+    setShowPrAnormal(false);
+    setShowQrsAnormal(false);
+    setShowEixoAnormal(false);
+    setShowQtAnormal(false);
+    setShowOutroRitmo(false);
+    setShowMarcapassoTipo(false);
+    setShowDerivacoes(false);
     try {
       const ecgs = await getPendingEcgs(priorityType); 
       if (ecgs.length > 0) setSelectedEcg(ecgs[0]);
@@ -76,7 +146,14 @@ const Laudo = () => {
     const fetchAllEcgs = async () => {
       setLoadingEcgs(true);
       setSelectedEcg(null);
-      setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+      setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
+      setShowPrAnormal(false);
+      setShowQrsAnormal(false);
+      setShowEixoAnormal(false);
+      setShowQtAnormal(false);
+      setShowOutroRitmo(false);
+      setShowMarcapassoTipo(false);
+      setShowDerivacoes(false);
       try {
         const allEcgs = await getPendingEcgs();
         setUrgentEcgs(allEcgs.filter(e => e.priority === 'Urgente'));
@@ -135,7 +212,7 @@ const Laudo = () => {
     try {
       await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal, user.uid, {
         ritmo: laudoForm.ritmo, fc: laudoForm.fc, pr: laudoForm.pr, qrs: laudoForm.qrs,
-        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, repolarizacao: laudoForm.repolarizacao, outrosAchados: laudoForm.outrosAchados
+        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, bdase: laudoForm.bdase, dcrd: laudoForm.dcrd, repolarizacao: laudoForm.repolarizacao
       });
       Alert.alert('Sucesso', 'Laudo enviado!');
       setSelectedEcg(null);
@@ -155,7 +232,7 @@ const Laudo = () => {
     try {
       await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal || '', user.uid, {
         ritmo: laudoForm.ritmo, fc: laudoForm.fc, pr: laudoForm.pr, qrs: laudoForm.qrs,
-        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, repolarizacao: laudoForm.repolarizacao, outrosAchados: laudoForm.outrosAchados,
+        eixo: laudoForm.eixo, bre: laudoForm.bre, brd: laudoForm.brd, bdase: laudoForm.bdase, dcrd: laudoForm.dcrd, repolarizacao: laudoForm.repolarizacao,
         status: 'draft',
       });
       Alert.alert('Rascunho salvo', 'Seu rascunho foi salvo. Você pode continuar depois.');
@@ -242,7 +319,15 @@ const Laudo = () => {
                 key={ecg.id}
                 onPress={() => {
                   setSelectedEcg(ecg);
-                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
+                  setShowPrAnormal(false);
+                  setShowQrsAnormal(false);
+                  setShowEixoAnormal(false);
+                  setShowQtAnormal(false);
+                  setShowOutroRitmo(false);
+                  setShowMarcapassoTipo(false);
+                  setShowDerivacoes(false);
+                  setShowOutroRepolarizacao(false);
                 }}
                 className={`flex-row items-center bg-black-100 rounded-lg border-2 border-black-200 px-4 py-3 mb-2`}
               >
@@ -259,7 +344,15 @@ const Laudo = () => {
                 key={ecg.id}
                 onPress={() => {
                   setSelectedEcg(ecg);
-                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
+                  setShowPrAnormal(false);
+                  setShowQrsAnormal(false);
+                  setShowEixoAnormal(false);
+                  setShowQtAnormal(false);
+                  setShowOutroRitmo(false);
+                  setShowMarcapassoTipo(false);
+                  setShowDerivacoes(false);
+                  setShowOutroRepolarizacao(false);
                 }}
                 className={`flex-row items-center bg-black-100 rounded-lg border-2 border-black-200 px-4 py-3 mb-2`}
               >
@@ -285,23 +378,42 @@ const Laudo = () => {
                       if (ecg.laudationDetails) {
                         try {
                           const details = JSON.parse(ecg.laudationDetails);
+                          const pr = details.pr || '';
+                          const qrs = details.qrs || '';
+                          const eixo = details.eixo || '';
+                          const qt = details.qt || '';
                           setLaudoForm({
                             ritmo: details.ritmo || '',
                             fc: details.fc || '',
-                            pr: details.pr || '',
-                            qrs: details.qrs || '',
-                            eixo: details.eixo || '',
+                            pr: pr,
+                            qrs: qrs,
+                            eixo: eixo,
+                            qt: qt,
+                            qtQuadrados: details.qtQuadrados || '',
+                            qtBpm: details.qtBpm || '',
+                            prTipo: details.prTipo || '',
                             bre: details.bre || false,
                             brd: details.brd || false,
+                            bdase: details.bdase || false,
+                            dcrd: details.dcrd || false,
                             repolarizacao: details.repolarizacao || '',
-                            outrosAchados: details.outrosAchados || '',
+                            repolarizacaoTipo: details.repolarizacaoTipo || '',
+                            derivacoes: details.derivacoes || [],
                             laudoFinal: ecg.laudationContent || ''
                           });
+                          setShowPrAnormal(pr !== 'Normal' && pr !== '');
+                          setShowQrsAnormal(qrs !== 'Normal' && qrs !== '');
+                          setShowEixoAnormal(eixo !== 'Normal' && eixo !== '');
+                          setShowQtAnormal(qt !== 'Normal' && qt !== '');
+                          setShowMarcapassoTipo(details.ritmo && details.ritmo.includes && details.ritmo.includes('Marcapasso operando'));
+                          setShowOutroRitmo(details.ritmo && !ritmoOptions.includes(details.ritmo) && details.ritmo.includes && !details.ritmo.includes('Marcapasso operando'));
+                          setShowDerivacoes(details.repolarizacao === 'Infradesnivelamento' || details.repolarizacao === 'Supradesnivelamento');
+                          setShowOutroRepolarizacao(details.repolarizacao && !repolarizacaoOptions.includes(details.repolarizacao));
                         } catch {
-                          setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                          setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
                         }
                       } else {
-                        setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                        setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
                       }
                     }}
                     className={`flex-row items-center bg-black-100 rounded-lg border-2 px-4 py-3 mb-2 ${borderColor}`}
@@ -320,7 +432,15 @@ const Laudo = () => {
                 key={ecg.id}
                 onPress={() => {
                   setSelectedEcg(ecg);
-                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', bre: false, brd: false, repolarizacao: '', outrosAchados: '', laudoFinal: '' });
+                  setLaudoForm({ ritmo: '', fc: '', pr: '', qrs: '', eixo: '', qt: '', qtQuadrados: '', qtBpm: '', prTipo: '', bre: false, brd: false, bdase: false, dcrd: false, repolarizacao: '', repolarizacaoTipo: '', derivacoes: [], laudoFinal: '' });
+                  setShowPrAnormal(false);
+                  setShowQrsAnormal(false);
+                  setShowEixoAnormal(false);
+                  setShowQtAnormal(false);
+                  setShowOutroRitmo(false);
+                  setShowMarcapassoTipo(false);
+                  setShowDerivacoes(false);
+                  setShowOutroRepolarizacao(false);
                 }}
                 className={`flex-row items-center bg-black-100 rounded-lg border-2 border-purple-400 px-4 py-3 mb-2`}
               >
@@ -346,19 +466,237 @@ const Laudo = () => {
               <Text className="text-gray-100 font-pregular">Prioridade: {selectedEcg.priority}</Text>
             </View>
 
-            <RadioGroup label="Ritmo" options={ritmoOptions} selectedOption={laudoForm.ritmo} onSelect={(option) => updateFormAndGenerateLaudo('ritmo', option)} />
+            <RadioGroup label="Ritmo" options={ritmoOptions} selectedOption={laudoForm.ritmo} onSelect={(option) => {
+              if (option === 'MP (Marcapasso)') {
+                setShowMarcapassoTipo(true);
+                setShowOutroRitmo(false);
+                updateFormAndGenerateLaudo('ritmo', '');
+              } else if (option === 'Outro') {
+                updateFormAndGenerateLaudo('ritmo', '');
+                setShowOutroRitmo(true);
+                setShowMarcapassoTipo(false);
+              } else {
+                updateFormAndGenerateLaudo('ritmo', option);
+                setShowOutroRitmo(false);
+                setShowMarcapassoTipo(false);
+              }
+            }} />
+            {showMarcapassoTipo && (
+              <View className="mt-4">
+                <Text className="text-lg text-white font-bold mb-2">Tipo de Marcapasso</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  <TouchableOpacity onPress={() => {
+                    updateFormAndGenerateLaudo('ritmo', 'Marcapasso operando em VAT');
+                  }} className={`py-2 px-5 rounded-lg ${laudoForm.ritmo === 'Marcapasso operando em VAT' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    <Text className="text-white">VAT</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    updateFormAndGenerateLaudo('ritmo', 'Marcapasso operando em VVI');
+                  }} className={`py-2 px-5 rounded-lg ${laudoForm.ritmo === 'Marcapasso operando em VVI' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                    <Text className="text-white">VVI</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {showOutroRitmo && (
+              <FormField
+                title="Descreva o ritmo"
+                value={laudoForm.ritmo}
+                handleChangeText={(e) => updateFormAndGenerateLaudo('ritmo', e)}
+                otherStyles="mt-4"
+              />
+            )}
             <FormField title="FC" value={laudoForm.fc} handleChangeText={(e) => updateFormAndGenerateLaudo('fc', e)} keyboardType="numeric" otherStyles="mt-7" />
-            <FormField title="PR" value={laudoForm.pr} handleChangeText={(e) => updateFormAndGenerateLaudo('pr', e)} keyboardType="numeric" otherStyles="mt-7" />
-            <FormField title="QRS" value={laudoForm.qrs} handleChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)} keyboardType="numeric" otherStyles="mt-7" />
-            <FormField title="Eixo " value={laudoForm.eixo} handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)} otherStyles="mt-7" />
-            <View className="mt-7 flex-row space-x-4">
+            <View className="mt-7">
+              <Text className="text-lg text-white font-bold mb-2">PR</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <TouchableOpacity onPress={() => {
+                  updateFormAndGenerateLaudo('pr', 'Normal');
+                  setShowPrAnormal(false);
+                }} className={`py-2 px-5 rounded-lg ${laudoForm.pr === 'Normal' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setShowPrAnormal(true);
+                  if (laudoForm.pr === 'Normal') updateFormAndGenerateLaudo('pr', '');
+                }} className={`py-2 px-5 rounded-lg ${showPrAnormal ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Anormal</Text>
+                </TouchableOpacity>
+              </View>
+              {showPrAnormal && (
+                <View className="mt-4">
+                  <View className="flex-row gap-4 items-end">
+                    <View style={{ width: 120 }}>
+                      <FormField
+                        title="Valor PR (ms)"
+                        value={laudoForm.pr === 'Normal' ? '' : laudoForm.pr}
+                        handleChangeText={(e) => updateFormAndGenerateLaudo('pr', e)}
+                        keyboardType="numeric"
+                        otherStyles=""
+                      />
+                    </View>
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity onPress={() => {
+                        updateFormAndGenerateLaudo('prTipo', 'WPW');
+                      }} className={`py-3 px-4 rounded-lg ${laudoForm.prTipo === 'WPW' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                        <Text className="text-white">WPW</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => {
+                        updateFormAndGenerateLaudo('prTipo', 'BAV 1º');
+                      }} className={`py-3 px-4 rounded-lg ${laudoForm.prTipo === 'BAV 1º' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                        <Text className="text-white">BAV 1º</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+            <View className="mt-7">
+              <Text className="text-lg text-white font-bold mb-2">QRS</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <TouchableOpacity onPress={() => {
+                  updateFormAndGenerateLaudo('qrs', 'Normal');
+                  setShowQrsAnormal(false);
+                }} className={`py-2 px-5 rounded-lg ${laudoForm.qrs === 'Normal' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setShowQrsAnormal(true);
+                  if (laudoForm.qrs === 'Normal') updateFormAndGenerateLaudo('qrs', '');
+                }} className={`py-2 px-5 rounded-lg ${showQrsAnormal ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Anormal</Text>
+                </TouchableOpacity>
+              </View>
+              {showQrsAnormal && (
+                <FormField
+                  title="Valor do QRS (ms)"
+                  value={laudoForm.qrs === 'Normal' ? '' : laudoForm.qrs}
+                  handleChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)}
+                  keyboardType="numeric"
+                  otherStyles="mt-4"
+                />
+              )}
+            </View>
+
+            <View className="mt-7">
+              <Text className="text-lg text-white font-bold mb-2">Eixo</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <TouchableOpacity onPress={() => {
+                  updateFormAndGenerateLaudo('eixo', 'Normal');
+                  setShowEixoAnormal(false);
+                }} className={`py-2 px-5 rounded-lg ${laudoForm.eixo === 'Normal' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setShowEixoAnormal(true);
+                  if (laudoForm.eixo === 'Normal') updateFormAndGenerateLaudo('eixo', '');
+                }} className={`py-2 px-5 rounded-lg ${showEixoAnormal ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Anormal</Text>
+                </TouchableOpacity>
+              </View>
+              {showEixoAnormal && (
+                <FormField
+                  title="Valor do Eixo (graus)"
+                  value={laudoForm.eixo === 'Normal' ? '' : laudoForm.eixo}
+                  handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)}
+                  keyboardType="numeric"
+                  otherStyles="mt-4"
+                />
+              )}
+            </View>
+
+            <View className="mt-7">
+              <Text className="text-lg text-white font-bold mb-2">QT</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <TouchableOpacity onPress={() => {
+                  updateFormAndGenerateLaudo('qt', 'Normal');
+                  setShowQtAnormal(false);
+                }} className={`py-2 px-5 rounded-lg ${laudoForm.qt === 'Normal' ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setShowQtAnormal(true);
+                  if (laudoForm.qt === 'Normal') {
+                    updateFormAndGenerateLaudo('qt', '');
+                    updateFormAndGenerateLaudo('qtQuadrados', '');
+                    updateFormAndGenerateLaudo('qtBpm', '');
+                  }
+                }} className={`py-2 px-5 rounded-lg ${showQtAnormal ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
+                  <Text className="text-white">Anormal</Text>
+                </TouchableOpacity>
+              </View>
+              {showQtAnormal && (
+                <View className="mt-4">
+                  <View className="flex-row gap-4">
+                    <View className="flex-1">
+                      <FormField
+                        title="Quadrados"
+                        value={laudoForm.qtQuadrados}
+                        handleChangeText={(e) => updateFormAndGenerateLaudo('qtQuadrados', e)}
+                        keyboardType="numeric"
+                        otherStyles=""
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <FormField
+                        title="BPM"
+                        value={laudoForm.qtBpm}
+                        handleChangeText={(e) => updateFormAndGenerateLaudo('qtBpm', e)}
+                        keyboardType="numeric"
+                        otherStyles=""
+                      />
+                    </View>
+                  </View>
+                  {laudoForm.qt && (
+                    <View className="mt-4 p-3 bg-gray-800 rounded-lg">
+                      <Text className="text-white font-pmedium">QT calculado: {laudoForm.qt}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+            <View className="mt-7">
+              <Text className="text-lg text-white font-bold mb-2">Bloqueios</Text>
+              <View className="flex-row flex-wrap gap-2">
               <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('bre', !laudoForm.bre)} className={`py-2 px-5 rounded-lg ${laudoForm.bre ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRE</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('brd', !laudoForm.brd)} className={`py-2 px-5 rounded-lg ${laudoForm.brd ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BRD</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('bdase', !laudoForm.bdase)} className={`py-2 px-5 rounded-lg ${laudoForm.bdase ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">BDASE</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('dcrd', !laudoForm.dcrd)} className={`py-2 px-5 rounded-lg ${laudoForm.dcrd ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">DCRD</Text></TouchableOpacity>
+              </View>
             </View>
             <RadioGroup label="Repolarização" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => {
-              updateFormAndGenerateLaudo('repolarizacao', option === 'Outro' ? '' : option);
-              setShowOutroRepolarizacao(option === 'Outro');
+              if (option === 'Infradesnivelamento' || option === 'Supradesnivelamento') {
+                updateFormAndGenerateLaudo('repolarizacao', option);
+                updateFormAndGenerateLaudo('repolarizacaoTipo', option);
+                setShowDerivacoes(true);
+                setShowOutroRepolarizacao(false);
+              } else if (option === 'Outro') {
+                updateFormAndGenerateLaudo('repolarizacao', '');
+                setShowOutroRepolarizacao(true);
+                setShowDerivacoes(false);
+              } else {
+                updateFormAndGenerateLaudo('repolarizacao', option);
+                setShowOutroRepolarizacao(false);
+                setShowDerivacoes(false);
+              }
             }} />
+            {showDerivacoes && (
+              <View className="mt-4">
+                <Text className="text-lg text-white font-bold mb-2">Derivações</Text>
+                <View className="flex-row flex-wrap">
+                  {['AVR', 'AVL', 'AVF', 'DI', 'DII', 'DIII', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6'].map((derivacao, index) => (
+                    <TouchableOpacity
+                      key={derivacao}
+                      onPress={() => toggleDerivacao(derivacao)}
+                      className={`py-2 px-3 rounded-lg mr-2 mb-2 ${laudoForm.derivacoes.includes(derivacao) ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}
+                      style={{ width: '30%' }}
+                    >
+                      <Text className="text-white text-center text-sm">{derivacao}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
             {showOutroRepolarizacao && (
               <FormField
                 title="Descreva a repolarização"
@@ -367,7 +705,7 @@ const Laudo = () => {
                 otherStyles="mt-4"
               />
             )}
-            <FormField title="Outros Achados" value={laudoForm.outrosAchados} handleChangeText={(e) => updateFormAndGenerateLaudo('outrosAchados', e)} otherStyles="mt-7" multiline />
+
             <FormField title="Laudo Final" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
             <CustomButton
               title="Salvar Rascunho"

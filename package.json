@@ -27,6 +27,7 @@
     "expo-haptics": "~13.0.1",
     "expo-image": "~1.13.0",
     "expo-image-picker": "~15.1.0",
+    "expo-linear-gradient": "~13.0.2",
     "expo-linking": "~6.3.1",
     "expo-modules-core": "~1.12.10",
     "expo-notifications": "~0.28.19",
@@ -49,15 +50,16 @@
     "react-native-safe-area-context": "^4.10.5",
     "react-native-screens": "~3.31.1",
     "react-native-web": "~0.19.10",
-    "react-native-webview": "^13.8.6",
-    "expo-linear-gradient": "~13.0.2"
+    "react-native-webview": "^13.8.6"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~18.2.45",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~7.1.2",
     "expo-build-properties": "^0.12.5",
+    "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.3.3"
   },

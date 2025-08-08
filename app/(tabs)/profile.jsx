@@ -76,6 +76,18 @@ const Profile = () => {
     }
   };
 
+  const handleNavigateToLaudedEcgs = () => {
+    if (user?.role === 'medico') {
+      router.push('/ecg-lauded-list');
+    }
+  };
+
+  const handleNavigateToPendingEcgs = () => {
+    if (user?.role === 'medico') {
+      router.push('/ecg-pending-list');
+    }
+  };
+
   const filteredEcgs = useMemo(() => {
     let result = ecgs;
     if (search) {
@@ -119,8 +131,6 @@ const Profile = () => {
                 resizeMode='contain' className="w-6 h-6" />
             </TouchableOpacity>
 
-            {/* Botão de teste de notificação push removido */}
-
             <View className="w-24 h-24 border border-secondary rounded-full justify-center items-center p-1">
               <Image
                 source={{ uri: user.avatar }}
@@ -152,17 +162,21 @@ const Profile = () => {
                 </>
               ) : (
                 <>
-                  <InfoBox
-                    title={laudedsOrSentEcgsCount}
-                    subtitle="ECGs Laudados"
-                    containerStyles="mr-10"
-                    titleStyles="text-xl"
-                  />
-                  <InfoBox
-                    title={pendingEcgsCount}
-                    subtitle="ECGs Pendentes"
-                    titleStyles="text-xl"
-                  />
+                  <TouchableOpacity onPress={handleNavigateToLaudedEcgs}>
+                    <InfoBox
+                      title={laudedsOrSentEcgsCount}
+                      subtitle="ECGs Laudados"
+                      containerStyles="mr-10"
+                      titleStyles="text-xl"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleNavigateToPendingEcgs}>
+                    <InfoBox
+                      title={pendingEcgsCount}
+                      subtitle="ECGs Pendentes"
+                      titleStyles="text-xl"
+                    />
+                  </TouchableOpacity>
                 </>
               )}
             </View>
