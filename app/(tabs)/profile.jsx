@@ -88,6 +88,19 @@ const Profile = () => {
     }
   };
 
+  const handleNavigateToSentEcgs = () => {
+    if (user?.role === 'enfermeiro') {
+      router.push('/ecg-sent-list');
+    }
+  };
+
+  const handleNavigateToReceivedLaudos = () => {
+    if (user?.role === 'enfermeiro') {
+      router.push('/laudos-received-list');
+    }
+  };
+
+
   const filteredEcgs = useMemo(() => {
     let result = ecgs;
     if (search) {
@@ -131,6 +144,8 @@ const Profile = () => {
                 resizeMode='contain' className="w-6 h-6" />
             </TouchableOpacity>
 
+
+
             <View className="w-24 h-24 border border-secondary rounded-full justify-center items-center p-1">
               <Image
                 source={{ uri: user.avatar }}
@@ -148,17 +163,21 @@ const Profile = () => {
             <View className="mt-5 flex-row">
               {user?.role === 'enfermeiro' ? (
                 <>
-                  <InfoBox
-                    title={laudedsOrSentEcgsCount}
-                    subtitle="ECGs Enviados"
-                    containerStyles="mr-10"
-                    titleStyles="text-xl"
-                  />
-                  <InfoBox
-                    title={ecgs.filter(ecg => ecg.status === 'lauded').length}
-                    subtitle="Laudos Recebidos"
-                    titleStyles="text-xl"
-                  />
+                  <TouchableOpacity onPress={handleNavigateToSentEcgs}>
+                    <InfoBox
+                      title={laudedsOrSentEcgsCount}
+                      subtitle="ECGs Enviados"
+                      containerStyles="mr-10"
+                      titleStyles="text-xl"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleNavigateToReceivedLaudos}>
+                    <InfoBox
+                      title={ecgs.filter(ecg => ecg.status === 'lauded').length}
+                      subtitle="Laudos Recebidos"
+                      titleStyles="text-xl"
+                    />
+                  </TouchableOpacity>
                 </>
               ) : (
                 <>

@@ -82,6 +82,16 @@ const SignIn = () => {
               secureTextEntry
             />
 
+            {/* Botão Esqueci minha senha */}
+            <View className="mt-4 items-center">
+              <Text 
+                onPress={() => router.push('/forgot-password')}
+                className="text-secondary text-base font-pmedium underline ml-12"
+              >
+                Esqueci minha senha
+              </Text>
+            </View>
+
             <CustomButton
               title="Entrar"
               handlePress={submit}

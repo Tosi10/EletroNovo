@@ -121,6 +121,62 @@ const Laudo = () => {
     });
   };
 
+  const validateLaudoForm = () => {
+    const errors = [];
+    
+    // Campos obrigatórios principais
+    if (!laudoForm.ritmo) errors.push('Ritmo');
+    if (!laudoForm.fc) errors.push('Frequência Cardíaca (FC)');
+    if (!laudoForm.pr) errors.push('Intervalo PR');
+    if (!laudoForm.qrs) errors.push('Duração QRS');
+    if (!laudoForm.eixo) errors.push('Eixo elétrico');
+    if (!laudoForm.qt) errors.push('Intervalo QT');
+    if (!laudoForm.repolarizacao) errors.push('Repolarização');
+    
+    // Validações específicas para campos anormais
+    if (laudoForm.pr !== 'Normal' && !laudoForm.pr) {
+      errors.push('Valor do PR (quando anormal)');
+    }
+    if (laudoForm.qrs !== 'Normal' && !laudoForm.qrs) {
+      errors.push('Valor do QRS (quando anormal)');
+    }
+    if (laudoForm.eixo !== 'Normal' && !laudoForm.eixo) {
+      errors.push('Valor do Eixo (quando anormal)');
+    }
+    if (laudoForm.qt !== 'Normal' && (!laudoForm.qtQuadrados || !laudoForm.qtBpm)) {
+      errors.push('Valores de QT (quadrados e BPM quando anormal)');
+    }
+    
+    // Validação específica para QT - deve ter um valor válido
+    if (!laudoForm.qt || laudoForm.qt === '') {
+      errors.push('Intervalo QT');
+    }
+    
+    // Validações específicas para tipos especiais
+    if (laudoForm.ritmo === 'MP (Marcapasso)' && !laudoForm.ritmo.includes('Marcapasso operando')) {
+      errors.push('Tipo de Marcapasso');
+    }
+    if (laudoForm.ritmo === 'Outro' && !laudoForm.ritmo) {
+      errors.push('Descrição do Ritmo');
+    }
+    if (laudoForm.repolarizacao === 'Outro' && !laudoForm.repolarizacao) {
+      errors.push('Descrição da Repolarização');
+    }
+    
+    // Validação para repolarização com derivacoes
+    if ((laudoForm.repolarizacao === 'Infradesnivelamento' || laudoForm.repolarizacao === 'Supradesnivelamento') && 
+        (!laudoForm.derivacoes || laudoForm.derivacoes.length === 0)) {
+      errors.push('Seleção de Derivações para Repolarização');
+    }
+    
+    return errors;
+  };
+
+  const isFormValid = () => {
+    const errors = validateLaudoForm();
+    return errors.length === 0 && laudoForm.laudoFinal && laudoForm.laudoFinal.trim() !== '';
+  };
+
   const fetchAndSelectFirstEcg = useCallback(async (priorityType) => {
     setLoadingEcgs(true);
     setSelectedEcg(null);
@@ -204,10 +260,28 @@ const Laudo = () => {
   }, [selectedEcg, user?.uid]);
 
   const submitLaudo = async () => {
-    if (!selectedEcg || !laudoForm.laudoFinal || !user?.uid) {
-      Alert.alert('Erro', 'Preencha todos os campos.');
+    if (!selectedEcg || !user?.uid) {
+      Alert.alert('Erro', 'Selecione um ECG e certifique-se de estar logado.');
       return;
     }
+    
+    // Validação rigorosa de todos os campos
+    const validationErrors = validateLaudoForm();
+    if (validationErrors.length > 0) {
+      Alert.alert(
+        'Campos Obrigatórios Não Preenchidos', 
+        `Por favor, preencha todos os campos obrigatórios:\n\n${validationErrors.join('\n')}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Verificação adicional do laudo final
+    if (!laudoForm.laudoFinal || laudoForm.laudoFinal.trim() === '') {
+      Alert.alert('Erro', 'O laudo final não pode estar vazio.');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal, user.uid, {
@@ -228,6 +302,17 @@ const Laudo = () => {
       Alert.alert('Erro', 'Selecione um ECG.');
       return;
     }
+    
+    // Para rascunho, permitimos campos vazios, mas validamos se pelo menos alguns campos foram preenchidos
+    const hasAnyData = laudoForm.ritmo || laudoForm.fc || laudoForm.pr || laudoForm.qrs || 
+                       laudoForm.eixo || laudoForm.qt || laudoForm.repolarizacao || 
+                       laudoForm.bre || laudoForm.brd || laudoForm.bdase || laudoForm.dcrd;
+    
+    if (!hasAnyData) {
+      Alert.alert('Aviso', 'Para salvar um rascunho, preencha pelo menos alguns campos do laudo.');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       await updateEcgLaudation(selectedEcg.id, laudoForm.laudoFinal || '', user.uid, {
@@ -455,6 +540,21 @@ const Laudo = () => {
         {selectedEcg && (
           <View className="mt-8 p-4 bg-black-100 rounded-xl border-2 border-black-200">
             <Text className="text-xl text-white font-psemibold mb-4">Paciente: {selectedEcg.patientName}</Text>
+            
+            {/* Nota sobre campos obrigatórios */}
+            <View className="mb-4 p-3 bg-yellow-600/20 border border-yellow-500/30 rounded-lg">
+              <Text className="text-yellow-300 text-sm font-pmedium">
+                ⚠️ Campos marcados com * são obrigatórios para envio do laudo
+              </Text>
+              {!isFormValid() && (
+                <View className="mt-2 p-2 bg-red-600/20 border border-red-500/30 rounded">
+                  <Text className="text-red-300 text-xs">
+                    📋 Faltam {validateLaudoForm().length} campo(s) obrigatório(s) para completar o laudo
+                  </Text>
+                </View>
+              )}
+            </View>
+            
             <TouchableOpacity onPress={() => setShowFullImage(true)} className="w-full h-64 rounded-lg mb-4">
               <Image source={{ uri: selectedEcg.imageUrl }} className="w-full h-full" resizeMode="contain" />
             </TouchableOpacity>
@@ -466,7 +566,7 @@ const Laudo = () => {
               <Text className="text-gray-100 font-pregular">Prioridade: {selectedEcg.priority}</Text>
             </View>
 
-            <RadioGroup label="Ritmo" options={ritmoOptions} selectedOption={laudoForm.ritmo} onSelect={(option) => {
+            <RadioGroup label="Ritmo *" options={ritmoOptions} selectedOption={laudoForm.ritmo} onSelect={(option) => {
               if (option === 'MP (Marcapasso)') {
                 setShowMarcapassoTipo(true);
                 setShowOutroRitmo(false);
@@ -506,9 +606,9 @@ const Laudo = () => {
                 otherStyles="mt-4"
               />
             )}
-            <FormField title="FC" value={laudoForm.fc} handleChangeText={(e) => updateFormAndGenerateLaudo('fc', e)} keyboardType="numeric" otherStyles="mt-7" />
+            <FormField title="FC *" value={laudoForm.fc} handleChangeText={(e) => updateFormAndGenerateLaudo('fc', e)} keyboardType="numeric" otherStyles="mt-7" />
             <View className="mt-7">
-              <Text className="text-lg text-white font-bold mb-2">PR</Text>
+              <Text className="text-lg text-white font-bold mb-2">PR *</Text>
               <View className="flex-row flex-wrap gap-2">
                 <TouchableOpacity onPress={() => {
                   updateFormAndGenerateLaudo('pr', 'Normal');
@@ -552,7 +652,7 @@ const Laudo = () => {
               )}
             </View>
             <View className="mt-7">
-              <Text className="text-lg text-white font-bold mb-2">QRS</Text>
+              <Text className="text-lg text-white font-bold mb-2">QRS *</Text>
               <View className="flex-row flex-wrap gap-2">
                 <TouchableOpacity onPress={() => {
                   updateFormAndGenerateLaudo('qrs', 'Normal');
@@ -579,7 +679,7 @@ const Laudo = () => {
             </View>
 
             <View className="mt-7">
-              <Text className="text-lg text-white font-bold mb-2">Eixo</Text>
+              <Text className="text-lg text-white font-bold mb-2">Eixo *</Text>
               <View className="flex-row flex-wrap gap-2">
                 <TouchableOpacity onPress={() => {
                   updateFormAndGenerateLaudo('eixo', 'Normal');
@@ -606,7 +706,7 @@ const Laudo = () => {
             </View>
 
             <View className="mt-7">
-              <Text className="text-lg text-white font-bold mb-2">QT</Text>
+              <Text className="text-lg text-white font-bold mb-2">QT *</Text>
               <View className="flex-row flex-wrap gap-2">
                 <TouchableOpacity onPress={() => {
                   updateFormAndGenerateLaudo('qt', 'Normal');
@@ -664,7 +764,7 @@ const Laudo = () => {
                 <TouchableOpacity onPress={() => updateFormAndGenerateLaudo('dcrd', !laudoForm.dcrd)} className={`py-2 px-5 rounded-lg ${laudoForm.dcrd ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}><Text className="text-white">DCRD</Text></TouchableOpacity>
               </View>
             </View>
-            <RadioGroup label="Repolarização" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => {
+            <RadioGroup label="Repolarização *" options={repolarizacaoOptions} selectedOption={laudoForm.repolarizacao} onSelect={(option) => {
               if (option === 'Infradesnivelamento' || option === 'Supradesnivelamento') {
                 updateFormAndGenerateLaudo('repolarizacao', option);
                 updateFormAndGenerateLaudo('repolarizacaoTipo', option);
@@ -706,14 +806,20 @@ const Laudo = () => {
               />
             )}
 
-            <FormField title="Laudo Final" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
+            <FormField title="Laudo Final *" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
             <CustomButton
               title="Salvar Rascunho"
               handlePress={saveLaudoDraft}
               containerStyles="mt-7 bg-gray-400"
               isLoading={isSubmitting}
             />
-            <CustomButton title="Submeter Laudo" handlePress={submitLaudo} containerStyles="mt-7" isLoading={isSubmitting} />
+            <CustomButton
+              title="Submeter Laudo"
+              handlePress={submitLaudo}
+              containerStyles={`mt-7 ${isFormValid() ? 'bg-blue-600' : 'bg-gray-500'}`}
+              isLoading={isSubmitting}
+              disabled={!isFormValid()}
+            />
             {/* <CustomButton
               title={isGenerating ? 'Gerando laudo...' : 'Gerar laudo automático'}
               handlePress={() => {

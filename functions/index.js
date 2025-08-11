@@ -2,6 +2,9 @@
 const functions = require('firebase-functions/v1'); // Importa a biblioteca principal do Firebase Functions (compatível com a API v1)
 const admin = require('firebase-admin'); // Importa o SDK Admin do Firebase para interagir com o Firestore e outros serviços
 const sgMail = require('@sendgrid/mail'); // Importa a biblioteca SendGrid para envio de e-mails
+// Configuração da URL da logo - esta URL será gerada após o upload da logo para o Firebase Storage
+// Para obter a URL correta, execute o script: node scripts/upload-logo.js
+const LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/ecgscan-e5a18.firebasestorage.app/o/images%2Fcardio2.png?alt=media&token=76413d86-454d-4ae0-a9c0-ecca0b7cf4f4';
 
 // Inicializa o SDK Admin do Firebase.
 // Isso permite que a função interaja com os serviços do Firebase (Firestore, etc.).
@@ -64,71 +67,126 @@ exports.sendLaudationEmail = functions.firestore
             }
         }
 
-        // Formata os detalhes estruturados do laudo para inclusão no email HTML.
-        let formattedDetails = '';
-        if (parsedLaudationDetails.ritmo) formattedDetails += `<li><strong>Ritmo:</strong> ${parsedLaudationDetails.ritmo}</li>`;
-        if (parsedLaudationDetails.fc) formattedDetails += `<li><strong>FC:</strong> ${parsedLaudationDetails.fc} bpm</li>`;
-        if (parsedLaudationDetails.pr) formattedDetails += `<li><strong>PR:</strong> ${parsedLaudationDetails.pr} ms</li>`;
-        if (parsedLaudationDetails.qrs) formattedDetails += `<li><strong>QRS:</strong> ${parsedLaudationDetails.qrs} ms</li>`;
-        if (parsedLaudationDetails.eixo) formattedDetails += `<li><strong>Eixo:</strong> ${parsedLaudationDetails.eixo}</li>`;
-        
-        let bloqueiosList = [];
-        if (parsedLaudationDetails.brc) bloqueiosList.push('Bloqueio de Ramo Completo (BRC)');
-        if (parsedLaudationDetails.brd) bloqueiosList.push('Bloqueio de Ramo Direito (BRD)');
-        if (bloqueiosList.length > 0) formattedDetails += `<li><strong>Bloqueios de Ramo:</strong> ${bloqueiosList.join(' e ')}</li>`;
-        
-        if (parsedLaudationDetails.repolarizacao) formattedDetails += `<li><strong>Repolarização:</strong> ${parsedLaudationDetails.repolarizacao}</li>`;
-        if (parsedLaudationDetails.outrosAchados) formattedDetails += `<li><strong>Outros Achados:</strong> ${parsedLaudationDetails.outrosAchados}</li>`;
+        // Formata o laudo final para inclusão no email HTML.
+        let formattedLaudoFinal = '';
+        if (newData.laudationContent) {
+            // Divide o laudo final por quebras de linha e formata cada linha
+            const laudoLines = newData.laudationContent.split('\n').filter(line => line.trim());
+            formattedLaudoFinal = laudoLines.map(line => {
+                const trimmedLine = line.trim();
+                // Remove o ponto final se existir
+                const lineWithoutDot = trimmedLine.endsWith('.') ? trimmedLine.slice(0, -1) : trimmedLine;
+                
+                if (lineWithoutDot.includes(':')) {
+                    const parts = lineWithoutDot.split(':');
+                    const title = parts[0].trim();
+                    const content = parts.slice(1).join(':').trim();
+                    return `<li><strong>${title}:</strong> ${content}.</li>`;
+                } else {
+                    // Se não tem ":", é provavelmente um bloqueio ou repolarização
+                    return `<li>${lineWithoutDot}.</li>`;
+                }
+            }).join('');
+        }
 
-        // 2. Gerar o conteúdo HTML do email.
+        // 2. Gerar o conteúdo HTML do email com design responsivo e compatível com clientes de email.
         const emailContent = `
           <!DOCTYPE html>
           <html>
           <head>
               <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
-                  .container { max-width: 800px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-top: 5px solid #204b32; }
+                  body { 
+                      font-family: Arial, sans-serif; 
+                      line-height: 1.6; 
+                      color: #333; 
+                      margin: 0; 
+                      padding: 20px; 
+                      background-color: #f4f4f4; 
+                      background-image: url('${LOGO_URL}');
+                      background-repeat: repeat;
+                      background-position: 0 0;
+                      background-size: 150px 150px;
+                      background-attachment: fixed;
+                      position: relative;
+                  }
+                  body::after {
+                      content: '';
+                      position: fixed;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      bottom: 0;
+                      background: rgba(255, 255, 255, 0.85);
+                      pointer-events: none;
+                      z-index: 0;
+                  }
+                  .container { 
+                      max-width: 800px; 
+                      margin: 20px auto; 
+                      background: rgba(255, 255, 255, 0.98); 
+                      padding: 30px; 
+                      border-radius: 8px; 
+                      box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+                      border-top: 5px solid #204b32; 
+                      position: relative;
+                      z-index: 2;
+                  }
                   .header { text-align: center; margin-bottom: 20px; }
-                  .header img { max-width: 150px; margin-bottom: 10px; }
-                  .header h1 { color: #204b32; margin: 0; font-size: 24px; }
-                  .section-title { font-weight: bold; color: #204b32; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; }
-                  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                  .header .logo-container { 
+                      margin-bottom: 20px; 
+                      text-align: center;
+                  }
+                  .header .logo-img {
+                      max-width: 120px; 
+                      height: auto; 
+                      border-radius: 8px; 
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                      filter: brightness(1.8) contrast(1.4) saturate(1.2);
+                      display: block;
+                      margin: 0 auto;
+                      position: relative;
+                      z-index: 2;
+                  }
+                  .header h1 { color: #204b32; margin: 0; font-size: 24px; position: relative; z-index: 3; }
+                  .section-title { font-weight: bold; color: #204b32; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; position: relative; z-index: 3; }
+                  .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; position: relative; z-index: 3; }
                   .info-table td { padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
-                  .conclusion { background-color: #f9f9f9; padding: 15px; border-left: 5px solid #ffa001; margin-bottom: 20px; }
-                  .signature { text-align: right; margin-top: 30px; }
+                  .signature { text-align: right; margin-top: 30px; position: relative; z-index: 3; }
                   .signature p { margin: 5px 0; }
-                  .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #777; }
+                  .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #777; position: relative; z-index: 3; }
                   .footer a { color: #777; text-decoration: none; }
+                  .laudo-list { list-style-type: disc; padding-left: 20px; position: relative; z-index: 3; }
+                  .laudo-list li { margin-bottom: 8px; }
               </style>
           </head>
           <body>
               <div class="container">
                   <div class="header">
-                      <img src="https://placehold.co/150x50/204b32/ffffff?text=Logo+MaisLaudo" alt="Mais Laudo Logo"> 
+                      <div class="logo-container">
+                          <img src="${LOGO_URL}" alt="Logo da Empresa" class="logo-img">
+                      </div>
                       <h1>Laudo de Eletrocardiograma</h1>
                   </div>
 
                   <table class="info-table">
                       <tr>
                           <td><strong>Nome do Paciente:</strong> ${newData.patientName}</td>
-                          <td><strong>Data do Exame:</strong> ${new Date(newData.createdAt._seconds * 1000).toLocaleDateString('pt-BR')}</td>
+                          <td><strong>Data do Exame:</strong> ${newData.createdAt && newData.createdAt._seconds ? new Date(newData.createdAt._seconds * 1000).toLocaleDateString('pt-BR') : 'Data não disponível'}</td>
                       </tr>
                       <tr>
                           <td><strong>Idade:</strong> ${newData.age} anos</td>
                           <td><strong>Sexo:</strong> ${newData.sex}</td>
                       </tr>
                       <tr>
-                          <td><strong>Marcapasso:</strong> ${newData.hasPacemaker ? 'Sim' : 'Não'}</td>
                           <td><strong>Prioridade:</strong> ${newData.priority}</td>
+                          <td>${newData.hasPacemaker === 'Sim' ? '<strong>Marcapasso:</strong> Sim' : ''}</td>
                       </tr>
                   </table>
 
-                  <div class="section-title">Análise Detalhada</div>
-                  <ul>
-                    ${formattedDetails}
+                  <div class="section-title">Laudo Final</div>
+                  <ul class="laudo-list">
+                    ${formattedLaudoFinal}
                   </ul>
-
-                  
 
                   ${newData.imageUrl ? `
                   <div class="section-title">Imagem do ECG</div>
@@ -142,12 +200,14 @@ exports.sendLaudationEmail = functions.firestore
                       <p><strong>${doctorName}</strong></p>
                       <p>${doctorRole}</p>
                       <p>${doctorCRM}</p>
-                      <img src="https://placehold.co/150x50/204b32/ffffff?text=Assinatura" alt="Assinatura" style="max-width: 150px; height: auto; margin-top: 10px;"> 
+                      <div style="background: linear-gradient(135deg, #204b32 0%, #2d5a3f 100%); color: white; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;">
+                          <strong>Assinatura Digital</strong>
+                      </div>
                   </div>
 
                   <div class="footer">
-                      <p>Este é um laudo oficial do ECG Scan App. Não responda a este e-mail.</p>
-                      <p><a href="http://www.seuapp.com">www.seuapp.com</a></p> 
+                      <p>Este é um laudo oficial do V6 Core App. Não responda a este e-mail.</p>
+                      <p><a href="http://www.v6core.com">www.v6core.com</a></p> 
                   </div>
               </div>
           </body>
@@ -159,7 +219,7 @@ exports.sendLaudationEmail = functions.firestore
           to: nurseEmail, // E-mail do enfermeiro (destinatário)
           from: 'adm.ecg.19@gmail.com', // O e-mail VERIFICADO e configurado no SendGrid
           subject: `Laudo Concluído: ECG do Paciente ${newData.patientName}`, // Assunto do e-mail
-          html: emailContent, // Conteúdo HTML do e-mail
+          html: emailContent, // Conteúdo HTML do email
         };
 
         await sgMail.send(msg);

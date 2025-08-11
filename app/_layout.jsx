@@ -54,6 +54,8 @@ const RootLayout = () => {
         <Stack.Screen name="ecg/[ecgId]" />
         <Stack.Screen name="ecg-lauded-list" />
         <Stack.Screen name="ecg-pending-list" />
+        <Stack.Screen name="ecg-sent-list" />
+        <Stack.Screen name="laudos-received-list" />
         {/* Se você tiver rotas diretas (fora de (auth) ou (tabs)), elas iriam aqui. */}
       </Stack>
     </GlobalProvider>
