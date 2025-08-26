@@ -99,9 +99,8 @@ const SignIn = () => {
               isLoading={isSubmitting}
             />
 
-            {/* Seletor de tipo de usuário para teste - só aparece em desenvolvimento */}
-            {__DEV__ && (
-              <View className="mt-6 px-4">
+            {/* Seletor de tipo de usuário para teste */}
+            <View className="mt-6 px-4">
                 <Text className="text-white text-center text-sm font-pmedium mb-3">
                   Tipo de Usuário (Teste)
                 </Text>
@@ -133,8 +132,7 @@ const SignIn = () => {
                     : 'Após o login, você poderá enviar ECGs para laudo'
                   }
                 </Text>
-              </View>
-            )}
+            </View>
 
             <View className="justify-center pt-5 flex-row gap-2">
               <Text className="text-white text-sm font-pmedium">Não tem uma conta?</Text>

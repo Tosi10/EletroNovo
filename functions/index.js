@@ -230,7 +230,7 @@ exports.sendLaudationEmail = functions.firestore
         await change.after.ref.update({ emailSent: true, emailSentAt: admin.firestore.FieldValue.serverTimestamp() });
         console.log(`ECG ID: ${ecgId} marcado como 'emailSent: true' no Firestore.`);
 
-      } catch (error) {
+        } catch (error) {
         console.error(`Erro ao enviar email (SendGrid) para ECG ID: ${ecgId}:`, error);
         // Em caso de erro, ainda marca emailSent como true, mas registra o erro para depuração.
         await change.after.ref.update({ emailSent: true, emailError: error.message || 'Erro desconhecido ao enviar email com SendGrid' });
@@ -240,4 +240,73 @@ exports.sendLaudationEmail = functions.firestore
     }
 
     return null; // Cloud Functions devem retornar null ou uma Promise vazia.
+  });
+
+// Função para notificar médicos quando um ECG urgente é criado
+exports.notifyUrgentEcgCreated = functions.firestore
+  .document('ecgs/{ecgId}')
+  .onCreate(async (snap, context) => {
+    const ecgData = snap.data();
+      const ecgId = context.params.ecgId;
+
+    console.log(`ECG criado: ${ecgId}, Prioridade: ${ecgData.priority}`);
+
+    // Só envia notificação se for urgente
+    if (ecgData.priority !== 'urgent') {
+      console.log(`ECG ${ecgId} não é urgente, não enviando notificação`);
+          return null;
+        }
+
+    try {
+      // Buscar todos os médicos no sistema
+      const doctorsSnapshot = await admin.firestore()
+        .collection('users')
+        .where('role', '==', 'medico')
+        .get();
+
+      if (doctorsSnapshot.empty) {
+        console.log('Nenhum médico encontrado no sistema');
+          return null;
+        }
+
+      const notifications = [];
+      
+      doctorsSnapshot.forEach(doc => {
+        const doctorData = doc.data();
+        const pushToken = doctorData.pushToken || doctorData.expoPushToken;
+        
+        if (pushToken) {
+          console.log(`Enviando notificação para médico: ${doctorData.username}`);
+          
+          const message = {
+            to: pushToken,
+            sound: 'default',
+            title: '🚨 ECG Urgente Recebido',
+            body: `Paciente: ${ecgData.patientName} - Idade: ${ecgData.age} anos`,
+            data: {
+              ecgId: ecgId,
+              priority: 'urgent',
+              patientName: ecgData.patientName,
+              age: ecgData.age
+            }
+          };
+          
+          notifications.push(admin.messaging().send(message));
+      } else {
+          console.log(`⚠️ Token push não encontrado para médico: ${doctorData.username}`);
+        }
+      });
+
+      if (notifications.length > 0) {
+        await Promise.all(notifications);
+        console.log(`✅ ${notifications.length} notificações enviadas para ECGs urgentes`);
+      } else {
+        console.log('❌ Nenhuma notificação foi enviada - nenhum médico com token válido');
+      }
+
+    } catch (error) {
+      console.error('Erro ao enviar notificações de ECG urgente:', error);
+    }
+
+    return null;
   });

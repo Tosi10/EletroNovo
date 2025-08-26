@@ -64,11 +64,9 @@ const GlobalProvider = ({ children }) => {
       if (currentUserProfile) {
         fetchedUser = currentUserProfile;
         
-        // Em desenvolvimento, sobrescreve o role com o tipo selecionado para teste
-        if (__DEV__) {
-          fetchedUser.role = testRole;
-          console.log(`🧪 Modo teste: Usuário será tratado como ${testRole}`);
-        }
+        // Sobrescreve o role com o tipo selecionado para teste
+        fetchedUser.role = testRole;
+        console.log(`🧪 Modo teste: Usuário será tratado como ${testRole}`);
         
         setIsLogged(true);
         // Registra o push token ao logar
@@ -91,9 +89,9 @@ const GlobalProvider = ({ children }) => {
     fetchUser();
   }, [fetchUser]);
 
-  // Efeito para atualizar o usuário quando o testRole mudar (só em desenvolvimento)
+  // Efeito para atualizar o usuário quando o testRole mudar
   useEffect(() => {
-    if (__DEV__ && user && isLogged && user.role !== testRole) {
+    if (user && isLogged && user.role !== testRole) {
       const updatedUser = { ...user, role: testRole };
       setUser(updatedUser);
       console.log(`🧪 Role atualizado para: ${testRole}`);

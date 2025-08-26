@@ -6,7 +6,6 @@ import ImageViewer from 'react-native-image-zoom-viewer';
 import Modal from 'react-native-modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomButton from '../../components/CustomButton';
-import FormField from '../../components/FormField';
 import { icons } from '../../constants';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { db, getEcgMessages, getEcgsForReview, getPendingEcgs, updateEcgLaudation } from '../../lib/firebase';
@@ -587,12 +586,16 @@ const Laudo = () => {
               </View>
             )}
             {showOutroRitmo && (
-              <FormField
-                title="Descreva o ritmo"
-                value={laudoForm.ritmo}
-                handleChangeText={(e) => updateFormAndGenerateLaudo('ritmo', e)}
-                otherStyles="mt-4"
-              />
+              <View className="mt-4">
+                <Text className="text-white font-bold mb-2">Descreva o ritmo</Text>
+                <TextInput
+                  value={laudoForm.ritmo}
+                  onChangeText={(e) => updateFormAndGenerateLaudo('ritmo', e)}
+                  className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                  placeholder="Digite a descrição do ritmo"
+                  placeholderTextColor="#CDCDE0"
+                />
+              </View>
             )}
             <View className="mt-7">
               <Text className="text-xl text-white font-bold mb-2">FC *</Text>
@@ -625,13 +628,17 @@ const Laudo = () => {
                 <View className="mt-4">
                   <View className="flex-row gap-4 items-end">
                     <View style={{ width: 120 }}>
-                      <FormField
-                        title="Valor PR (ms)"
-                        value={laudoForm.pr === 'Normal' ? '' : laudoForm.pr}
-                        handleChangeText={(e) => updateFormAndGenerateLaudo('pr', e)}
-                        keyboardType="numeric"
-                        otherStyles=""
-                      />
+                      <View>
+                        <Text className="text-white font-bold mb-2">Valor PR (ms)</Text>
+                        <TextInput
+                          value={laudoForm.pr === 'Normal' ? '' : laudoForm.pr}
+                          onChangeText={(e) => updateFormAndGenerateLaudo('pr', e)}
+                          keyboardType="numeric"
+                          className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                          placeholder="Digite o valor do PR"
+                          placeholderTextColor="#CDCDE0"
+                        />
+                      </View>
                     </View>
                     <View className="flex-row gap-2">
                       <TouchableOpacity onPress={() => {
@@ -666,13 +673,17 @@ const Laudo = () => {
                 </TouchableOpacity>
               </View>
               {showQrsAnormal && (
-                <FormField
-                  title="Valor do QRS (ms)"
-                  value={laudoForm.qrs === 'Normal' ? '' : laudoForm.qrs}
-                  handleChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)}
-                  keyboardType="numeric"
-                  otherStyles="mt-4"
-                />
+                <View className="mt-4">
+                  <Text className="text-white font-bold mb-2">Valor do QRS (ms)</Text>
+                  <TextInput
+                    value={laudoForm.qrs === 'Normal' ? '' : laudoForm.qrs}
+                    onChangeText={(e) => updateFormAndGenerateLaudo('qrs', e)}
+                    keyboardType="numeric"
+                    className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                    placeholder="Digite o valor do QRS"
+                    placeholderTextColor="#CDCDE0"
+                  />
+                </View>
               )}
             </View>
 
@@ -693,13 +704,17 @@ const Laudo = () => {
                 </TouchableOpacity>
               </View>
               {showEixoAnormal && (
-                <FormField
-                  title="Valor do Eixo (graus)"
-                  value={laudoForm.eixo === 'Normal' ? '' : laudoForm.eixo}
-                  handleChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)}
-                  keyboardType="numeric"
-                  otherStyles="mt-4"
-                />
+                <View className="mt-4">
+                  <Text className="text-white font-bold mb-2">Valor do Eixo (graus)</Text>
+                  <TextInput
+                    value={laudoForm.eixo === 'Normal' ? '' : laudoForm.eixo}
+                    onChangeText={(e) => updateFormAndGenerateLaudo('eixo', e)}
+                    keyboardType="numeric"
+                    className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                    placeholder="Digite o valor do eixo"
+                    placeholderTextColor="#CDCDE0"
+                  />
+                </View>
               )}
             </View>
 
@@ -727,21 +742,25 @@ const Laudo = () => {
                 <View className="mt-4">
                   <View className="flex-row gap-4">
                     <View className="flex-1">
-                      <FormField
-                        title="Quadrados"
+                      <Text className="text-white font-bold mb-2">Quadrados</Text>
+                      <TextInput
                         value={laudoForm.qtQuadrados}
-                        handleChangeText={(e) => updateFormAndGenerateLaudo('qtQuadrados', e)}
+                        onChangeText={(e) => updateFormAndGenerateLaudo('qtQuadrados', e)}
                         keyboardType="numeric"
-                        otherStyles=""
+                        className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                        placeholder="Digite os quadrados"
+                        placeholderTextColor="#CDCDE0"
                       />
                     </View>
                     <View className="flex-1">
-                      <FormField
-                        title="BPM"
+                      <Text className="text-white font-bold mb-2">BPM</Text>
+                      <TextInput
                         value={laudoForm.qtBpm}
-                        handleChangeText={(e) => updateFormAndGenerateLaudo('qtBpm', e)}
+                        onChangeText={(e) => updateFormAndGenerateLaudo('qtBpm', e)}
                         keyboardType="numeric"
-                        otherStyles=""
+                        className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                        placeholder="Digite o BPM"
+                        placeholderTextColor="#CDCDE0"
                       />
                     </View>
                   </View>
@@ -796,12 +815,16 @@ const Laudo = () => {
               </View>
             )}
             {showOutroRepolarizacao && (
-              <FormField
-                title="Descreva a repolarização"
-                value={laudoForm.repolarizacao}
-                handleChangeText={(e) => updateFormAndGenerateLaudo('repolarizacao', e)}
-                otherStyles="mt-4"
-              />
+              <View className="mt-4">
+                <Text className="text-white font-bold mb-2">Descreva a repolarização</Text>
+                <TextInput
+                  value={laudoForm.repolarizacao}
+                  onChangeText={(e) => updateFormAndGenerateLaudo('repolarizacao', e)}
+                  className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                  placeholder="Digite a descrição da repolarização"
+                  placeholderTextColor="#CDCDE0"
+                />
+              </View>
             )}
 
             <View className="mt-7">
