@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import Modal from 'react-native-modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -541,19 +541,7 @@ const Laudo = () => {
           <View className="mt-8 p-4 bg-black-100 rounded-xl border-2 border-black-200">
             <Text className="text-xl text-white font-psemibold mb-4">Paciente: {selectedEcg.patientName}</Text>
             
-            {/* Nota sobre campos obrigatórios */}
-            <View className="mb-4 p-3 bg-yellow-600/20 border border-yellow-500/30 rounded-lg">
-              <Text className="text-yellow-300 text-sm font-pmedium">
-                ⚠️ Campos marcados com * são obrigatórios para envio do laudo
-              </Text>
-              {!isFormValid() && (
-                <View className="mt-2 p-2 bg-red-600/20 border border-red-500/30 rounded">
-                  <Text className="text-red-300 text-xs">
-                    📋 Faltam {validateLaudoForm().length} campo(s) obrigatório(s) para completar o laudo
-                  </Text>
-                </View>
-              )}
-            </View>
+
             
             <TouchableOpacity onPress={() => setShowFullImage(true)} className="w-full h-64 rounded-lg mb-4">
               <Image source={{ uri: selectedEcg.imageUrl }} className="w-full h-full" resizeMode="contain" />
@@ -606,7 +594,17 @@ const Laudo = () => {
                 otherStyles="mt-4"
               />
             )}
-            <FormField title="FC *" value={laudoForm.fc} handleChangeText={(e) => updateFormAndGenerateLaudo('fc', e)} keyboardType="numeric" otherStyles="mt-7" />
+            <View className="mt-7">
+              <Text className="text-xl text-white font-bold mb-2">FC *</Text>
+              <TextInput
+                value={laudoForm.fc}
+                onChangeText={(e) => updateFormAndGenerateLaudo('fc', e)}
+                keyboardType="numeric"
+                className="w-full h-12 px-4 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                placeholder="Digite a frequência cardíaca"
+                placeholderTextColor="#CDCDE0"
+              />
+            </View>
             <View className="mt-7">
               <Text className="text-lg text-white font-bold mb-2">PR *</Text>
               <View className="flex-row flex-wrap gap-2">
@@ -806,7 +804,19 @@ const Laudo = () => {
               />
             )}
 
-            <FormField title="Laudo Final *" value={laudoForm.laudoFinal} handleChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)} otherStyles="mt-7" multiline />
+            <View className="mt-7">
+              <Text className="text-xl text-white font-bold mb-2">Laudo Final *</Text>
+              <TextInput
+                value={laudoForm.laudoFinal}
+                onChangeText={(e) => updateFormAndGenerateLaudo('laudoFinal', e)}
+                multiline
+                numberOfLines={4}
+                className="w-full h-24 px-4 py-3 bg-black-200 border border-gray-600 rounded-lg text-white font-pregular"
+                placeholder="Digite o laudo final"
+                placeholderTextColor="#CDCDE0"
+                textAlignVertical="top"
+              />
+            </View>
             <CustomButton
               title="Salvar Rascunho"
               handlePress={saveLaudoDraft}

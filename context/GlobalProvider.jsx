@@ -42,6 +42,7 @@ const GlobalProvider = ({ children }) => {
   const [isLogged, setIsLogged] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [testRole, setTestRole] = useState('medico'); // Para teste em desenvolvimento
 
   // Listener para abrir chat ao clicar na notificação push
   useEffect(() => {
@@ -62,10 +63,17 @@ const GlobalProvider = ({ children }) => {
       const currentUserProfile = await getCurrentUser();
       if (currentUserProfile) {
         fetchedUser = currentUserProfile;
+        
+        // Em desenvolvimento, sobrescreve o role com o tipo selecionado para teste
+        if (__DEV__) {
+          fetchedUser.role = testRole;
+          console.log(`🧪 Modo teste: Usuário será tratado como ${testRole}`);
+        }
+        
         setIsLogged(true);
         // Registra o push token ao logar
         await registerForPushNotificationsAsync(currentUserProfile.uid);
-        console.log('Usuário autenticado:', currentUserProfile);
+        console.log('Usuário autenticado:', fetchedUser);
       } else {
         setIsLogged(false);
         console.log('Nenhum usuário logado.');
@@ -77,14 +85,32 @@ const GlobalProvider = ({ children }) => {
       setUser(fetchedUser);
       setLoading(false);
     }
-  }, []);
+  }, [testRole]); // Adiciona testRole como dependência
 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
+  // Efeito para atualizar o usuário quando o testRole mudar (só em desenvolvimento)
+  useEffect(() => {
+    if (__DEV__ && user && isLogged && user.role !== testRole) {
+      const updatedUser = { ...user, role: testRole };
+      setUser(updatedUser);
+      console.log(`🧪 Role atualizado para: ${testRole}`);
+    }
+  }, [testRole]); // Remove user e isLogged das dependências para evitar loop
+
   return (
-    <GlobalContext.Provider value={{ isLogged, setIsLogged, user, setUser, isLoading: loading, refetchUser: fetchUser }}>
+    <GlobalContext.Provider value={{ 
+      isLogged, 
+      setIsLogged, 
+      user, 
+      setUser, 
+      isLoading: loading, 
+      refetchUser: fetchUser,
+      testRole,
+      setTestRole
+    }}>
       {children}
     </GlobalContext.Provider>
   );
